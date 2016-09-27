@@ -1,3 +1,10 @@
+"""
+This script is similar to FLASH_plot.py eventual intention is to combine the two into one script.
+This script obtains its data from the rad_profile*.out produced by all_profiles*.py as well as the RAMSES sink file for the star particle data.
+"""
+
+
+######## All import statements #################
 import matplotlib
 matplotlib.use("Agg")
 from matplotlib import rc
@@ -30,20 +37,6 @@ import h5py
 from mpl_toolkits.axes_grid1 import host_subplot
 import mpl_toolkits.axisartist as AA
 
-
-#def plotting_routine(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, rhobin, mdotbin, norm, angXbin, angYbin, angZbin, vphi_magbin):
-#	velocity_plot(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, vphi_magbin)
-#	pdf_timestep.savefig()
-#	density_plot(rbin, mTbin, rhobin)
-#	pdf_timestep.savefig()
-#	ang_moment_plot(rbin, mTbin, vphi_magbin)
-#	pdf_timestep.savefig()
-#	total_mass_plot(rbin, mTbin)
-#	pdf_timestep.savefig()
-#	Mdot_plot(rbin, vrbin, rhobin, mdotbin)
-#	pdf_timestep.savefig()
-#	pdf_close(pdf_timestep)
-#
 def velocity_plot(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, vphi_magbin):
 
 	index_vk_min=vKbin.argmin()
