@@ -1,0 +1,14 @@
+#!/bin/bash
+# MOAB/Torque submission script for SciNet GPC 
+#
+#PBS -l nodes=5:ppn=8,walltime=8:00:00
+#PBS -N ZoomAnalysis
+ 
+# DIRECTORY TO RUN - $PBS_O_WORKDIR is directory job was submitted from
+cd $PBS_O_WORKDIR
+
+module load gnu-parallel
+source ~/Analysis/yt-x86_64/bin/activate
+# EXECUTION COMMAND; -np = nodes*ppn
+
+seq 1 20 | parallel -j 4 --sshloginfile $PBS_NODEFILE --workdir $PWD python ~/ramses-scripts/visualization.py --particle {} 116 20

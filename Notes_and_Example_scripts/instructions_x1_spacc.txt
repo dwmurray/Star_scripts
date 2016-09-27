@@ -1,0 +1,7 @@
+Ok, first run x1.py asks for start, end and radius
+end is the end number, not end + 1
+radius is usually .25 pc or sometimes out to .5
+
+then run sphereACC. asks for radius only
+
+the number of particles in the quadrant is HARDCODED! so you have to go change it. be aware of that

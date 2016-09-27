@@ -1,0 +1,125 @@
+the distance btwn the purple dots and red dashes is bc we dissipate the energy rather than conserving energy. its bigger at large R due to us stiring. and abelow inside bc we have an isothermal gas, thats supersonic, so get shocks that would generate thermal energy, but we're isothermal so immediately dissipate that energy.
+
+
+
+eddy turnover time is about .5 the infall time
+
+
+
+why solenoidol
+
+Any fluid flow is solenoidal and compressive. Solenoidal is the curl of a vector field and thus is divergence free.
+If its compressive the gradient of scalar potential and thus is curl free.
+
+so which one?
+
+the disks might be gravitationally stable. then the force is the grad of potential. shouldn't surprise that the flow should be the gradient of the flow (thus if you take curl, its zero).
+
+but, what if SNe that support or Shear in the disks. That shear would drive solenoidal turbulence.
+
+Not sure which way to do it. but if done compressive, might inflate the SFR.
+
+Shouldn't matter how it was driven because it cascades down and so it shouldn't "remember"
+It does actually remember because we don't quite go down enough decades. We go 4 decades, so it could still remember.
+
+
+
+try to pull out the mass of the particle at each timestep. try to plot that.
+How to pull the mass out over time.
+If nothing else, could go through all files, pull particle mass push to text file then plot that over t.
+# Do this later next paper
+To plot the angular momentum vector, I could try just listing out as ratios. ie
+
+L0 = Lx0, Ly0, Lz0
+L1 = Lx1, Ly1, Lz1
+
+ratio0 = L0/L0
+
+ratio1 = L1/L0 = Lx1/Lx0 etc and any major changes from 1, 1, 1 would indicate that it is moving, if slowly.
+
+I may want to use the specific, l0 and l1 rather than the total L0, L1.
+
+Not sure how to plot this, but it may be enough to just show if the vector is moving or not.
+####
+
+
+
+1. Turbulent goes over to Ang velocity. show in slice plot as well
+2.  radial goes over to turbulent early on ( and at larger radii)
+potential en goes to turb
+Klessen et al do a sim that starts with spherical collapse with small amt c turblulence find that while turb does grow most goes to Vr the growth time is comparable to or longer than fall time. so by thetime to collapse the growth in vturb is negligent.
+
+We're starting with a substantial turbulent state find that the PE is efficiently going to turbulent rather than vr energy. Explain why. consistent with Robertson and Goldreich. conclude that calc of growth rate of turb motion from laminar flow is not applicable to a turbulent collapse.
+
+3. Sphere of influence moves out.
+    look at the Kepler profile
+    changes in vturb, vrad, vang
+
+4.  v profile at small R is like MC15 but is the sum of vang + vturb. (they had just all as v turb)
+  	  suggest extension of MC15 (can modify MC15 and are in the process of doing so)
+	  plot out stuff for long before 162 to show the attractor soln
+
+5. Renee Plume - 1997 v vs rho
+
+6 . There is an attractive soln based on rho plots
+
+7. Stellar mass as function of time 
+   - for individula and total
+   - SFE as fnction of time
+
+Conclusions
+a.) Stars don't form from hydrostatic cores, Turbulent support model is incorrect.
+    infall velocity ~1/3 kepler velocity, bigger than kepler initially (quad3 for sure)
+
+.) Conversion of PE to turb and from infall KE to turb > both confrim Roberstion and Godlreich
+b2.) deviation from larsons law 
+
+c.) there is turbluelent pressure support
+
+d/ M onto stars is rougly t^2
+
+e.) SFE vs t is not aconstant mearusrement show large spread.
+f.) There is and attractor soln.
+
+
+##########################
+
+track the 2nd and 3rd density peaks
+do so by removing any cells within r <= .5pc
+
+how does flash keep track of the star particles? does the number switch around at all?
+what about yt.
+get snapshots around 166 in quad2
+
+
+find xyz of the star particle when it first forms. Then, set a sphere around that location in the previous file. find the max density in that sphere. use that as new xyz do usual all_profiles on that new point, and then again, track backwards.
+
+
+
+
+
+1/rho d/dr rho vt**2 = g
+
+
+viscosity goes like L * v where L is the length (for molecular viscosity its the mean free path (1/ n*sigma)) and v is the velocity of the fluid.
+
+
+from yt.mods import *
+pf = load("BB_hdf5_plt_cnt_0498")
+dd = pf.h.all_data()
+dd.field
+dd.fields
+pf.h.derived_field_list
+pf.current_time
+dd["particle_creation_time"]
+pf.current_time/1e14
+pf.h.derived_field_list
+pf.h.derived_field_list
+dd["particle_index"]
+
+
+
+# Check to see about getting/ plotting the REne plume data points.
+
+
+In Fall should be around 20% of free fall
