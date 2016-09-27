@@ -47,7 +47,6 @@ Text_08_filename = 'ramses_jeans_32c/rad_profile_0131_shellsphere_1.out'
 Text_04_filename = 'ramses_jeans_32c/rad_profile_0105_shellsphere_1.out'
 
 
-
 def shu_derivs( x, y) :
 	v = y[0]
 	alpha = y[1] 
