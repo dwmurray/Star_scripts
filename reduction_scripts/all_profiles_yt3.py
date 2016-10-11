@@ -845,9 +845,10 @@ def standardize_file_number(input_file_number):
 		sys.exit()
 	return output_file_number
 
-def FLASH_load_particle_info():
+def FLASH_load_particle_info(plt_file):
 	#FLASH
-	pf = load("{0}{1:04d}".format( plt_prefix, i))
+	#pf = yt.load("{0}{1:04d}".format( plt_prefix, i))
+	pf = yt.load(plt_file)
 	dd = pf.h.all_data()
 	xp = dd["particle_posx"]
 	yp = dd["particle_posy"]
@@ -874,7 +875,7 @@ def flash_file_existance_chk(file_value):
 		return False #continue
 	return True
 
-def flash_obtain_individual_part_atributes(part_lst_num, file_number, pf, particle_ID, xp, yp, zp, vxp, vyp, vzp, partMass, creation_time, current_time):
+def flash_obtain_individual_part_attributes(part_lst_num, file_number, pf, particle_ID, xp, yp, zp, vxp, vyp, vzp, partMass, creation_time, current_time):
 	xc = xp[part_lst_num]	 
 	yc = yp[part_lst_num]	 
 	zc = zp[part_lst_num]
@@ -890,7 +891,7 @@ def flash_obtain_individual_part_atributes(part_lst_num, file_number, pf, partic
 	return xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass
 
 
-def RAMSES_obtain_individual_part_atributes(part_lst_num, file_number, pf, particle_ID, xstar, ystar, zstar, vxstar, vystar, vzstar, partMass, creation_time, current_time):
+def RAMSES_obtain_individual_part_attributes(part_lst_num, file_number, pf, particle_ID, xstar, ystar, zstar, vxstar, vystar, vzstar, partMass, creation_time, current_time):
 	print particle_ID[part_lst_num], withParticleIDValue
 	if particle_ID[part_lst_num] == withParticleIDValue or (withAllParticles):
 		xc = xstar[part_lst_num]	 
@@ -971,26 +972,31 @@ def trackbackwards():
 			particle_exists_here = False
 		else:
 			try:
-				#pf = load("{0}{1:04d}".format( plt_prefix, i))
-				file = prefix+"{0:05d}/info_{0:05d}.txt".format(i)
-				print file
-				sinkfile = prefix+"{0:05d}/sink_{0:05d}.info".format(i)
-				print sinkfile
-				pf = yt.load(file)
-				#particle_ID, partMass, xstar, ystar, zstar = Obtain_particles(sinkfile) #Ramses
-				particle_ID, partMass, xstar, ystar, zstar, vxstar, vystar, vzstar = Obtain_particles(sinkfile) #Ramses
-				#Flash.
-				#dd = pf.h.all_data()
-				#xp = dd["particle_posx"]
-				#yp = dd["particle_posy"]
-				#zp = dd["particle_posz"]
-				#vxp = dd["particle_velocity_x"]
-				#vyp = dd["particle_velocity_y"]
-				#vzp = dd["particle_velocity_z"]
-				#partMass = dd["ParticleMassMsun"]
-				#creation_time = dd["particle_creation_time"]
-				#current_time = pf.current_time
-				#particle_ID = dd["particle_index"]
+				if withFLASH4:
+					#Flash.
+#					dd = pf.h.all_data()
+#					xp = dd["particle_posx"]
+#					yp = dd["particle_posy"]
+#					zp = dd["particle_posz"]
+#					vxp = dd["particle_velocity_x"]
+#					vyp = dd["particle_velocity_y"]
+#					vzp = dd["particle_velocity_z"]
+#					partMass = dd["ParticleMassMsun"]
+#					creation_time = dd["particle_creation_time"]
+#					current_time = pf.current_time
+#					particle_ID = dd["particle_index"]
+					plt_file = '{0}{1:04d}'.format(plt_prefix, i)
+					FLASH_load_particle_info(plt_file)
+					pass
+				else:
+					#pf = load("{0}{1:04d}".format( plt_prefix, i))
+					file = prefix+"{0:05d}/info_{0:05d}.txt".format(i)
+					print file
+					sinkfile = prefix+"{0:05d}/sink_{0:05d}.info".format(i)
+					print sinkfile
+					pf = yt.load(file)
+					#particle_ID, partMass, xstar, ystar, zstar = Obtain_particles(sinkfile) #Ramses
+					particle_ID, partMass, xstar, ystar, zstar, vxstar, vystar, vzstar = Obtain_particles(sinkfile) #Ramses
 				particle_exists_here = True
 #				if (particle_exists_here):
 #					txt_output_file = '/home/m/murray/dwmurray/scratch/ramses_jeans_{0}/particle_location.txt'.format(filesys_location)
@@ -1169,7 +1175,7 @@ def Main_tracing_forwards():
 		# First, check that the two files exist:
 		#FLASH
 		if withFLASH4:
-			if not (file_existance_chk):
+			if not (flash_file_existance_chk):
 				continue
 			print 'On File: {0}{1:04d}'.format(plt_prefix, i)
 		else:
@@ -1233,7 +1239,7 @@ def Main_tracing_forwards():
 					print 'On particle:', part_lst_num + 1, 'of:', xstar.size, ' in File: {0}{1:04d}'.format(plt_prefix, i)
 					print particle_ID[part_lst_num], withParticleIDValue
 					if particle_ID[part_lst_num] == withParticleIDValue or (withAllParticles):
-						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = RAMSES_obtain_individual_part_atributes(part_lst_num, file_number, pf, particle_ID, xstar, ystar, zstar, vxstar, vystar, vzstar, partMass, creation_time, current_time)
+						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = RAMSES_obtain_individual_part_attributes(part_lst_num, file_number, pf, particle_ID, xstar, ystar, zstar, vxstar, vystar, vzstar, partMass, creation_time, current_time)
 					else:
 						print 'This particle ID does not match, ' + \
 						    'may not be in this octant.'
@@ -1253,8 +1259,8 @@ def Main_tracing_forwards():
 						break
 					print particle_ID[part_lst_num], withParticleIDValue
 					if particle_ID[part_lst_num] == withParticleIDValue or (withAllParticles):
-						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = RAMSES_obtain_individual_part_atributes(part_lst_num, file_number, pf, particle_ID, xstar, ystar, zstar, vxstar, vystar, vzstar, partMass, creation_time, current_time)
-#						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = obtain_individual_part_atributes(part_lst_num, file_number, pf, particle_ID, xp, yp, zp, vxp, vyp, vzp, partMass, creation_time, current_time)
+						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = RAMSES_obtain_individual_part_attributes(part_lst_num, file_number, pf, particle_ID, xstar, ystar, zstar, vxstar, vystar, vzstar, partMass, creation_time, current_time)
+#						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = obtain_individual_part_attributes(part_lst_num, file_number, pf, particle_ID, xp, yp, zp, vxp, vyp, vzp, partMass, creation_time, current_time)
 					else:
 						print 'This particle ID does not match, ' + \
 						    'may not be in this octant.'
@@ -1274,8 +1280,8 @@ def Main_tracing_forwards():
 						break
 					print particle_ID[part_lst_num], withParticleIDValue
 					if particle_ID[part_lst_num] == withParticleIDValue or (withAllParticles):
-						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = RAMSES_obtain_individual_part_atributes(part_lst_num, file_number, pf, particle_ID, xstar, ystar, zstar, vxstar, vystar, vzstar, partMass, creation_time, current_time)
-#						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = obtain_individual_part_atributes(part_lst_num, file_number, pf, particle_ID, xp, yp, zp, vxp, vyp, vzp, partMass, creation_time, current_time)
+						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = RAMSES_obtain_individual_part_attributes(part_lst_num, file_number, pf, particle_ID, xstar, ystar, zstar, vxstar, vystar, vzstar, partMass, creation_time, current_time)
+#						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = obtain_individual_part_attributes(part_lst_num, file_number, pf, particle_ID, xp, yp, zp, vxp, vyp, vzp, partMass, creation_time, current_time)
 					else:
 						print 'This particle ID does not match, ' + \
 						    'may not be in this octant.'
@@ -1291,8 +1297,8 @@ def Main_tracing_forwards():
 					print 'On particle:', part_lst_num + 1, 'of:', xstar.size, ' in File: {0}{1:04d}'.format(plt_prefix, i)
 					print particle_ID[part_lst_num], withParticleIDValue
 					if particle_ID[part_lst_num] == withParticleIDValue or (withAllParticles):
-						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = RAMSES_obtain_individual_part_atributes(part_lst_num, file_number, pf, particle_ID, xstar, ystar, zstar, vxstar, vystar, vzstar, partMass, creation_time, current_time)
-						#xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = obtain_individual_part_atributes(part_lst_num, file_number, pf, particle_ID, xp, yp, zp, vxp, vyp, vzp, partMass, creation_time, current_time)
+						xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = RAMSES_obtain_individual_part_attributes(part_lst_num, file_number, pf, particle_ID, xstar, ystar, zstar, vxstar, vystar, vzstar, partMass, creation_time, current_time)
+						#xc, yc, zc, vxc, vyc, vzc, this_particle_id, this_creation_time, particleMass = obtain_individual_part_attributes(part_lst_num, file_number, pf, particle_ID, xp, yp, zp, vxp, vyp, vzp, partMass, creation_time, current_time)
 					else:
 						print 'This particle ID does not match, ' + \
 						    'may not be in this octant.'
@@ -1350,7 +1356,7 @@ def Main_tracing_forwards():
 def Main_tracing_forwards_no_particles():
 	for i in range(args.start,args.end,args.step) :	
 		# First, check that the two files exist:
-		if not (file_existance_chk):
+		if not (flash_file_existance_chk):
 			continue
 		print 'On File: {0}{1:04d}'.format(plt_prefix, i)
 		# Create the 4 digit file number so that we can reference it for plotting
@@ -1358,7 +1364,7 @@ def Main_tracing_forwards_no_particles():
 		#print four_digit_file_number
 		# Use this for before star particle formation.
 		# Make sure getRadialProfile_yt has bulk set to sphere and not particle Velocity
-		pf = load("{0}{1:04d}".format( plt_prefix, i))
+		pf = yt.load("{0}{1:04d}".format( plt_prefix, i))
 		dd = pf.h.all_data()
 		max= dd.quantities["MaxLocation"]("Density")
 		maxDens = max[0]/3e-22

@@ -1,3 +1,7 @@
+"""
+This program finds the total mass in star particles over time in a simulation. It also finds the total number of stars over time.
+"""
+
 import matplotlib
 matplotlib.use("Agg")
 from matplotlib import rc
@@ -25,6 +29,10 @@ import glob
 import matplotlib.pyplot as pl
 
 def getValues( particleFile, value) :
+	"""
+	This function loads the star Particles from a FLASH run.
+	"""
+	# This function is currently not used.
         names = numpy.char.strip(particleFile["particle names"].value)
         starParticles = particleFile["tracer particles"].value
         ind = (numpy.char.strip(names) == value)[:,0]
@@ -56,12 +64,14 @@ def Obtain_particles(file, sinkfile, fileIndex) :
         return ID, mass, current_time
 
 def run_quad(dir_label):
+	"""
+	This function
+	"""
 	times = []
 	masses = []
 	number_of_stars = []
 	prefix = 'output_'
 	start_time = 0
-	calc_time = 0
 	print 'looking at all sink files in dir.', dir_label
 	for fileIndex in range( 1, 500) : 
 		file = prefix+"{0:05d}/info_{0:05d}.txt".format(fileIndex)
@@ -110,25 +120,19 @@ def run_quad(dir_label):
 
 
 def plot(dir_label):
+	"""
+	This function makes a call to run_quad passing it the directory to look in.
+	run_quad returns an array of times, masses, and number of stars.
+	plot then plots the requested information.
+	"""
 	qtime, qmass, number_stars, start_time, end_time = run_quad(dir_label)
-	print qtime, qmass, number_stars
-	print 'last time in octant', qtime[-1]
-	#times = numpy.arange(0, bins, 1) * (end_time-start_time)/bins + start_time
-	#print times.size, start_time, end_time, end_time - start_time
-	#import scipy.interpolate as si
-	#totalMass = numpy.zeros( bins) 
-	#totalnumber_stars = numpy.zeros(bins)
-	boolMass = qmass > 0.1
-	print boolMass
-	print " "
-	print qtime
-	print qtime - start_time
-	print end_time, start_time
+	#print qtime, qmass, number_stars
 	print qtime[0], start_time, qmass[0]
-
+	print 'last time in octant', qtime[-1]
+	# Setting boolMass removes any star particles that formed with 1e-15 M_solar, etc.
+	boolMass = qmass > 0.1
 	pl.loglog( (qtime[boolMass] -start_time)/3.15e7, qmass[boolMass], label= r'N_J = ' + str(dir_label))
 	#pl.loglog( (qtime -start_time)/3.15e7, qmass, label= r'N_J = ' + str(dir_label))
-	#pl.loglog( (times[boolMass] -start_time)/3.15e7, qmass[boolMass], label= r'N_J = ' + str(dir_label))
 	pl.loglog( numpy.arange(2, 10, 0.1)*1e5, 1.*(numpy.arange(2,10,0.1))**2, ls="--") 
 
 
@@ -141,26 +145,25 @@ Msun = 2e33
 G = 6.67e-8
 c_s = 2.64e4
 
-units_time = 3.87201e3
+home = "/home/m/murray/dwmurray/scratch/test-ramses/" 
+home = "/Users/dwmurray/Work/Ramses_hydro/"
 
 bins = 1001
-qtimes = []
-qmasses = []
-totnumber_stars = []
-#quad_list = [2]
-#for j in range(0, 1) : 
-#	#quad = quad_list[j]
-#	#print quad
-#	qtime, qmass, number_stars = run_quad()
-#	qtimes.append(qtime)
-#	qmasses.append(qmass)
-#	totnumber_stars.append(number_stars)
-#	print 'time of 1st particle', qtime[0]
-#	print 'last time in octant', qtime[-1]
-
-home = "/home/m/murray/dwmurray/" 
-os.chdir(home + "scratch/test-ramses/hd_32jeans_1024_v1")
+#simulation_list = [('scratch/test-ramses/hd_32jeans_1024_v1', '32']
+###simulation_list = {'hd_32jeans_1024_v1' : '32','hd_32jeans_1024_v1' : '16'}
+#simulation_list = ['hd_32jeans_1024_v1', 'hd_32jeans_1024_v1']
+# N_J_list = ['32', '16']
+##for current_directory, N_J_value  in zip(simulation_list, N_J_list):
+##print type(simulation_list)
+##print simulation_list['hd_32jeans_1024_v1']
+##print len(simulation_list)
+##for j in range(len(simulation_list)): 
+##	print simulation_list[j]
+##	print type(current_directory)
+##	
+os.chdir(home + 'hd_32jeans_1024_v1')
 plot('32')
+
 ##os.chdir(home + "test-ramses/jeans_32c")
 ##plot('32c')
 #os.chdir(home + "test-ramses/jeans_16")
@@ -175,7 +178,8 @@ pl.ylabel('$M_*$ $(M_\odot)$', fontsize = 25)
 pl.xlabel( "$t-t_*$ $({\\rm yrs})$", fontsize = 25)
 
 pl.legend(loc=0)
-pl.savefig(home + "scratch/Total_mass_over_time.pdf")
+#pl.savefig(home + "Total_mass_over_time.pdf")
+pl.savefig(home + "Test_mass_time.pdf")
 
 #
 #qtime, qmass, number_stars, start_time, end_time = run_quad()
