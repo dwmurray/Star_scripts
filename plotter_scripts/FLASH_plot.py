@@ -788,8 +788,8 @@ for framestep in range(args.start,args.end,args.step) :
 		particle_number = particle_list[j]
 		if int(particle_number) == withParticleIDValue or (withAllParticles):
 			print "Plotting particle", j+1, 'of', len(particle_list)
-			filein = '{0}_{1}_{2:04d}_{3}{4}.out'.format(file_prefix, quad, framestep, compare_files, particle_number)
-#			filein = '{0}_{1}_{2:04d}_{3}{4}.0.out'.format(file_prefix, quad, framestep, compare_files, particle_number)
+#			filein = '{0}_{1}_{2:04d}_{3}{4}.out'.format(file_prefix, quad, framestep, compare_files, particle_number)
+			filein = '{0}_{1}_{2:04d}_{3}{4}.0.out'.format(file_prefix, quad, framestep, compare_files, particle_number)
 			particle_file_exist =  glob.glob(filein)
 			print filein
 			if not particle_file_exist:
