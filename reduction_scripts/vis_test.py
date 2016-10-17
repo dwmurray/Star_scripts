@@ -63,8 +63,10 @@ def Proj_plotting(pf, xc, yc, zc, zoom_width, quad, i, this_particle_id):
 
 
 def slice(filein, xc=0.0, yc=0.0, zc=0.0, zoom_width = 2.0, fileout='junk.png', withParticles=False, field="Density") :
-	pf = load(file)
+	#pf = load(file)
         plot_out_prefix = 'movieframe'
+	#print "in slice"
+	print xc, yc, zc
 	#sp = pf.h.sphere([xc, yc, zc], (zoom_width + 0.5, "pc"))
 	sp = pf.h.sphere([xc, yc, zc], (0.01, "pc"))
 	# Get the angular momentum vector for the sphere.
@@ -72,26 +74,33 @@ def slice(filein, xc=0.0, yc=0.0, zc=0.0, zoom_width = 2.0, fileout='junk.png', 
 	# Find vectors orthogonal to L to plot side on view of disk.
 	orthog_to_L_1 = np.array([L[2], L[2], -L[0]-L[1]])
 	orthog_to_L_2 = np.array([L[1], -L[0]-L[2], L[1]])
-	print np.dot(L, orthog_to_L_1)
-	print np.dot(L, orthog_to_L_2)
+	#print np.dot(L, orthog_to_L_1)
+	#print np.dot(L, orthog_to_L_2)
 	# What axis do we plot along?
 	Axis_to_plot = L
 	#Axis_to_plot = orthog_to_L_1
 	#Axis_to_plot = orthog_to_L_2
 
 	# Create an OffAxisSlicePlot on the object with the L vector as its normal
-	plot_field = 'Density'
+	#plot_field = 'Density'#yt2
+	plot_field = 'density'
 	#plot_field = 'VelocityMagnitude'
 
  	p = OffAxisSlicePlot(pf, Axis_to_plot, plot_field, sp.center, (zoom_width, "pc"))
-	p.set_zlim("Density", 1e-23,1e-14)
+	#p.set_zlim("Density", 1e-23,1e-14)#yt2
+	p.set_cmap(field="density", cmap='bds_highcontrast')#yt2 default cmap
+	p.set_zlim("density", 1e-23,1e-14)
+
 	#p.set_zlim("Density", 1e-20,1e-17)
 	if(withArrows):
 		#v_vector_bulk=pf.h.disk([xc, yc, zc], Axis_to_plot, (1e-2, "pc"), (0.001, "pc")).quantities["BulkVelocity"]()
 		v_vector_bulk=pf.h.sphere([xc, yc, zc], (2e-2, "pc")).quantities["BulkVelocity"]()
 		p = OffAxisSlicePlot(pf, Axis_to_plot, plot_field, sp.center, (zoom_width, "pc"), field_parameters={"bulk_velocity": v_vector_bulk})
-		p.set_zlim("Density", 1e-23,1e-14)
-		p.annotate_cquiver('CuttingPlaneVelocityX', 'CuttingPlaneVelocityY', 12)
+		#p.set_zlim("Density", 1e-23,1e-14
+		p.set_cmap(field="density", cmap='bds_highcontrast')
+		p.set_zlim("density", 1e-23,1e-14)
+		#p.annotate_cquiver('CuttingPlaneVelocityX', 'CuttingPlaneVelocityY', 12)# yt2
+		p.annotate_cquiver('cutting_plane_velocity_x', 'cutting_plane_velocity_y', 20)# yt3
 		#p.annotate_contour("Density")
 	pid = os.getpid()
 	#p.set_font({'family':'sans-serif', 'style':'italic', 'weight':'bold', 'size':24, 'color':'blue'})
@@ -277,12 +286,19 @@ for i in range(args.start,args.end,args.step) :
  	pf = load("{0}{1:04d}".format(prefix, i))
 	dd = pf.h.all_data()
 	if (withNoParticles):
-		max= dd.quantities["MaxLocation"]("Density")
-		maxDens = max[0]/3e-22
-		maxLoc = numpy.array(max[2:5])/3e18
-		xc = max[2]
-		yc = max[3]
-		zc = max[4]
+		#max= dd.quantities["MaxLocation"]("Density") #yt2
+		max = dd.quantities.max_location(("gas", "density"))#yt3
+		print max
+		maxDens = max[0]/3e-22 #this is returned in g/cm**3
+		#maxLoc = numpy.array(max[2:5])/3e18 #yt2
+		#yt2
+		#xc = max[2]
+		#yc = max[3]
+		#zc = max[4]
+		# yt3
+		xc = max[1]
+		yc = max[2]
+		zc = max[3] #these are in code units
 		#xc = 3.01906738281e+19
 		#yc = 2.04562988281e+19
 		#zc = 1.02202148438e+19
