@@ -75,17 +75,17 @@ def velocity_plot(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbi
 #	print power_law_fit
 #	sys.exit()
 	pl.axhline( c_s/1e5, color = 'black',label='$c_s$')  
-#	if not (withNoParticle) or (withdisk):
-#		if disk_radius_index != 0 or particleMass != 0.0:
-#			vy_second_point = vrmsbin[index_turb_min] / 1e5
-#			vx_plot = [r_star, r_star]
-#			vy_plot = [1e-2, vy_second_point]
-#			pl.plot (vx_plot, vy_plot, '.--', color = 'g')
-#			pl.plot (r_star, vy_second_point, color = 'g', marker = 'o')
-#			#pl.plot (rbin[index_turb_min], vrmsbin[index_turb_min] , color = 'g', marker = 'o')
-#			pl.annotate('$R_*$ = ' + "%.2f"%r_star + 'pc', xy=(r_star, 1e-2), xytext=(r_star, 1.25e-2), fontsize=20)
+	if not (withNoParticle) or (withdisk):
+		if disk_radius_index != 0 or particleMass != 0.0:
+			vy_second_point = vrmsbin[index_turb_min] / 1e5
+			vx_plot = [r_star, r_star]
+			vy_plot = [1e-2, vy_second_point]
+			pl.plot (vx_plot, vy_plot, '.--', color = 'g')
+			pl.plot (r_star, vy_second_point, color = 'g', marker = 'o')
+			#pl.plot (rbin[index_turb_min], vrmsbin[index_turb_min] , color = 'g', marker = 'o')
+			pl.annotate('$R_*$ = ' + "%.2f"%r_star + 'pc', xy=(r_star, 1e-2), xytext=(r_star, 1.25e-2), fontsize=20)
 #	pl.legend(loc=3, fontsize=21, frameon=False, ncol=2)
-	pl.legend(loc='best', fontsize=21, frameon=False, ncol=2)
+#	pl.legend(loc='best', fontsize=21, frameon=False, ncol=2)
 	pl.ylim(1e-2, 3e0)
 	pl.xlim(3e-3, 3e0)
 
