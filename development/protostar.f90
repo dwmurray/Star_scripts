@@ -7,18 +7,37 @@ program ps
   integer :: protostar_state
   double precision, parameter :: M_solar = 1.989D33
   double precision, parameter :: R_solar = 6.96D10
-  
+
+! Initialize the table of phi and epsilon
+  integer, parameter :: phi_dim1=4, phi_dim2=50
+  integer, parameter  :: proto_dim1=40, proto_dim2=40
+  double precision, dimension(phi_dim1, phi_dim2) :: phi_eps_table
+  double precision, dimension(proto_dim1, proto_dim2) :: proto_core_table
+
+
+  call init_phi_eps(phi_dim1, phi_dim2, phi_eps_table)
+
+! Now that we have phi and eps, we need to get rho_core & P_core
+
+  call init_P_and_rho_core(phi_dim1, phi_dim2, phi_eps_table, proto_dim1, proto_dim2, proto_core_table)
+
+! From P_core and rho_core we can root find for T_core and Beta.
+
+  call init_T_core_Beta(phi_dim1, phi_dim2, phi_eps_table)
+
+! Now proceed for the protostellar evolution.
+
   tage = 0.
-  deltaM = 0.01
+  deltaM = 0.005
   deltaT = 0.01
-  m = 0.01 * M_solar
+  m = 0.001 * M_solar
   protostar_state = 0
 !  n = 5./3.
 !  md = 0.
 
-  call update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protostar_state)
+  call update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table)
 
-  call protostar(tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_state)
+  call protostar(tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table)
 
   write(*,*) "passed out of protostar"
   write(*,*) r," ", lum
@@ -27,10 +46,13 @@ program ps
 end program ps
 
 
-subroutine update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protostar_state)!(deltaM, deltaT, m, r, n, L_D, protostar_state)
+subroutine update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table)!(deltaM, deltaT, m, r, n, L_D, protostar_state)
   implicit none
 
   double precision, intent( in) :: deltaM, deltaT, m
+  integer, intent(in) :: phi_dim1, phi_dim2
+  double precision, intent( in), dimension(phi_dim1,phi_dim2) :: phi_eps_table
+
   double precision, intent( inout) :: r, n, md, T_core
   integer, intent( inout) :: protostar_state
   double precision :: L_MS, L_D, r_MS
@@ -38,6 +60,8 @@ subroutine update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protosta
   double precision, parameter :: M_solar = 1.989D33
   double precision, parameter :: R_solar = 6.96D10
   double precision, parameter :: f_rad = 0.33 ! used to update to shell deuterium burning.
+
+  write (*,*) phi_eps_table(:,1)
 
   if (protostar_state .EQ. 0) then
      if (m .LT. (0.01 * M_solar)) then   ! if the mass is below 0.01 solar masses then we do not initialize
@@ -102,10 +126,13 @@ subroutine update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protosta
 end subroutine update_protostar_state
 
 
-subroutine protostar( tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_state) 
+subroutine protostar( tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table) 
   implicit none
   
   double precision, intent( in) :: tage, deltaM, deltaT, m
+  integer, intent(in) :: phi_dim1, phi_dim2
+  double precision, intent( in), dimension(phi_dim1,phi_dim2) :: phi_eps_table
+
   double precision, intent( out) :: lum
   double precision, intent( inout) :: r, n, md, T_core
   integer, intent( inout) :: protostar_state
@@ -152,8 +179,6 @@ subroutine protostar( tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_
 
      return
   end if
-
-
 
   return
 end subroutine protostar
@@ -260,3 +285,102 @@ subroutine set_r_MS()
 
   return
 end subroutine set_r_MS
+
+subroutine init_phi_eps(phi_dim1, phi_dim2, phi_eps_table)
+  use rk2_polytrope
+  implicit none
+  integer, intent(in) :: phi_dim1, phi_dim2
+  double precision, intent( inout), dimension(phi_dim1,phi_dim2) :: phi_eps_table
+  double precision :: n, eps1, dphideps1
+  integer :: i
+  double precision, parameter :: nstart=1.4, nend=3.1
+
+!  n = 1.9
+!  call polytrope( n, eps1, dphideps1) 
+!  do i =1, 1000
+!     phi_eps_table(1,i) = n
+!     phi_eps_table(2,i) = eps1
+!     phi_eps_table(3,i) = dphideps1
+!  end do
+  do i =1 , phi_dim2
+
+     n = nstart + (nend-nstart)*i/phi_dim2 !This is 1001 steps across 3.1-1.4! (3.1-1.4)/1000.!0.01
+
+     call polytrope( n, eps1, dphideps1) 
+!     write (*,*) n, eps1, -eps1**2*dphideps1
+     phi_eps_table(1,i) = n
+     phi_eps_table(2,i) = eps1
+     phi_eps_table(3,i) = dphideps1
+     ! trying to include a fourth column gives a segmentation fault.
+     phi_eps_table(4,i) = -eps1**2*dphideps1
+     !write (*,*) phi_eps_table(:,i)
+  end do
+!  write (*,*) i
+!  write (*,*) phi_eps_table
+end subroutine init_phi_eps
+
+subroutine init_P_and_rho_core(phi_dim1, phi_dim2, phi_eps_table, proto_dim1, proto_dim2, proto_core_table)
+  use protostellar_core
+  use constants
+
+  implicit none
+  
+  integer, intent(in) :: phi_dim1, phi_dim2
+  double precision, intent( in), dimension(phi_dim1,phi_dim2) :: phi_eps_table
+
+  integer, intent(in)            :: proto_dim1, proto_dim2  !proto_core_table !n, m, rho, P, T, Beta
+  double precision, intent( out), dimension(proto_dim1, proto_dim2)    :: proto_core_table
+
+  double precision    :: rho_core_value, P_core_value
+  double precision    :: M, R
+  double precision    :: n, eps1, dphideps1
+
+  integer             :: i,j,k
+
+  ! for a solar mass then scale linearly.
+  !R = ( 2.5 * R_sun) !* ( deltaM / (deltaT * 1.E-5 * M_solar))**0.2
+  
+  i = 1
+  do i = 1, phi_dim2
+     n = phi_eps_table(1,i)
+     eps1 = phi_eps_table(2,i)
+     dphideps1 = phi_eps_table(3,i)
+
+     M = 0.01*M_sun
+     do j = 1, 600
+
+        R = 0.1*R_sun
+        do k = 1, 100
+           rho_core_value = determine_rho_core(M, R, eps1, dphideps1)
+           P_core_value = determine_P_core(M, R, n, dphideps1)
+           if (i .EQ. 5) then
+              write(*,101) i, j, n, eps1, dphideps1, M, rho_core_value, P_core_value
+101           format(2i8, 6(1pe10.3,2x))
+
+              !write out to a csv and then plot with python to make sure there are no bumps etc.
+              !how big is a float? and how many floats per gigabyte?
+              
+              !Get T and Beta now as well.
+           end if
+           R = R + 0.1*R_sun
+        end do
+        M = M + 0.01*M_sun
+     end do
+  end do
+
+
+end subroutine init_P_and_rho_core
+
+subroutine init_T_core_Beta(phi_dim1, phi_dim2, phi_eps_table)
+  use root_find
+  
+  integer, intent(in) :: phi_dim1, phi_dim2
+  double precision, intent( in), dimension(phi_dim1,phi_dim2) :: phi_eps_table
+
+  double precision    :: rho_core_value, P_core_value
+  double precision    :: M, R
+  double precision    :: n, eps1, dphideps1
+
+  !call find_root(n, rho_core, P_core, xinit, machine_tolerance, maxiter, result)
+
+end subroutine init_T_core_Beta

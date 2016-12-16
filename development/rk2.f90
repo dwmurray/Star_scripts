@@ -1,3 +1,4 @@
+
 subroutine derivs( x, n, y, dydx) 
   implicit none
   integer, parameter :: nvars = 2
@@ -41,6 +42,13 @@ subroutine rk2( func, x1, x2, n, y1, y2)
   return
 end subroutine rk2
 
+
+module rk2_polytrope
+  implicit none
+  PUBLIC :: polytrope
+!
+contains
+!
 subroutine polytrope( n, eps1, dphideps1)
   implicit none
   integer, parameter :: nvars = 2
@@ -78,17 +86,19 @@ subroutine polytrope( n, eps1, dphideps1)
   return
 
 end subroutine polytrope
-  
-program test_rk2
-  external :: polytrope
-  double precision :: n, eps1, dphideps1
-
-  do n = 0.5, 5.0, 0.05
-     call polytrope( n, eps1, dphideps1) 
-     write (*,*) n, eps1, -eps1**2*dphideps1
-  end do
-
-  stop
-end program test_rk2
- 
-
+end module rk2_polytrope
+!
+!program test_rk2
+!  external :: polytrope
+!  double precision :: n, eps1, dphideps1
+!
+!  !do n = 0.5, 5.0, 0.05
+!  do n = 1.4, 3.1, 0.05
+!     call polytrope( n, eps1, dphideps1) 
+!     write (*,*) n, eps1, -eps1**2*dphideps1
+!  end do
+!
+!  stop
+!end program test_rk2
+! 
+!
