@@ -1,12 +1,13 @@
 
 program ps 
+  use constants
   implicit none
   
   double precision :: tage, deltaM, deltaT, m, r, lum, n, md
   double precision :: T_core
   integer :: protostar_state
-  double precision, parameter :: M_solar = 1.989D33
-  double precision, parameter :: R_solar = 6.96D10
+!  double precision, parameter :: M_solar = 1.989D33
+!  double precision, parameter :: R_solar = 6.96D10
 
 ! Initialize the table of phi and epsilon
   integer, parameter :: phi_dim1=4, phi_dim2=50
@@ -15,31 +16,32 @@ program ps
   double precision, dimension(proto_dim1, proto_dim2) :: proto_core_table
 
 
-  call init_phi_eps(phi_dim1, phi_dim2, phi_eps_table)
+!  call init_phi_eps(phi_dim1, phi_dim2, phi_eps_table)
 
 ! Now that we have phi and eps, we need to get rho_core & P_core
-
-  call init_P_and_rho_core(phi_dim1, phi_dim2, phi_eps_table, proto_dim1, proto_dim2, proto_core_table)
-
 ! From P_core and rho_core we can root find for T_core and Beta.
-
-  call init_T_core_Beta(phi_dim1, phi_dim2, phi_eps_table)
+!  call init_P_and_rho_core(phi_dim1, phi_dim2, phi_eps_table, proto_dim1, proto_dim2, proto_core_table)
 
 ! Now proceed for the protostellar evolution.
 
   tage = 0.
-  deltaM = 0.005
-  deltaT = 0.01
-  m = 0.001 * M_solar
+  deltaM = 1.e-5*M_sun
+  deltaT = 1!0.01
+  m = 0.001 * M_sun
   protostar_state = 0
 !  n = 5./3.
 !  md = 0.
 
-  call update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table)
+  do while (tage .le. 1.e6)
+     call update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table)
 
-  call protostar(tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table)
+     call protostar(tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table)
+     m = m + deltaM
+     tage = tage + deltaT
 
-  write(*,*) "passed out of protostar"
+  end do
+  write(*,*) tage
+  write(*,*) "m/m_sun = ", m/m_sun, "r/r_sun = ", r/r_sun
   write(*,*) r," ", lum
   
   stop
@@ -61,7 +63,7 @@ subroutine update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protosta
   double precision, parameter :: R_solar = 6.96D10
   double precision, parameter :: f_rad = 0.33 ! used to update to shell deuterium burning.
 
-  write (*,*) phi_eps_table(:,1)
+!  write (*,*) phi_eps_table(:,1)
 
   if (protostar_state .EQ. 0) then
      if (m .LT. (0.01 * M_solar)) then   ! if the mass is below 0.01 solar masses then we do not initialize
@@ -127,6 +129,7 @@ end subroutine update_protostar_state
 
 
 subroutine protostar( tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table) 
+  use constants
   implicit none
   
   double precision, intent( in) :: tage, deltaM, deltaT, m
@@ -139,13 +142,16 @@ subroutine protostar( tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_
 
   double precision :: deltaR, L_D, L_MS
 
-  double precision, parameter :: M_solar = 1.989D33
-  double precision, parameter :: R_solar = 6.96D10
+!  double precision, parameter :: M_solar = 1.989D33
+!  double precision, parameter :: R_solar = 6.96D10
 
-  write (*,*) "m = ", m, 'and r = ', r
+
+
+  ! If we've burned all deuterium then
+  L_D = 15. * L_sun * deltaM / (deltaT * 1.e-5 * M_sun)
 
   if (protostar_state .EQ. 0) then   ! This is the pre-collapse state.
-     write (*,*) "Pre-Collapse State."
+     !write (*,*) "Pre-Collapse State."
      r = 0.
      lum = 0.
      n = 0.
@@ -153,24 +159,36 @@ subroutine protostar( tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_
   end if
 
   if (protostar_state .EQ. 1) then ! This is updating the non-burning state.
-     call update_radius( deltaM, deltaT, m, r, n, L_D, L_MS, deltaR)
+     !write (*,*) "m/m_sun = ", m/m_sun, 'and r/r_sun = ', r/r_sun
+     call update_radius( deltaM, deltaT, m, r, n, L_D, deltaR)
+     ! now update r
+     r = r + deltaR
      return
   end if
 
 
   if (protostar_state .EQ. 2) then   ! Core-deuterium burning at fixed T_core state
-     call update_radius( deltaM, deltaT, m, r, n, L_D, L_MS, deltaR)
+     call update_radius( deltaM, deltaT, m, r, n, L_D, deltaR)
+     ! now update r
+     r = r + deltaR
+
      return
   end if
 
 
   if (protostar_state .EQ. 3) then  ! Core-deuterium burning at variable T_core state
-     call update_radius( deltaM, deltaT, m, r, n, L_D, L_MS, deltaR)
+     call update_radius( deltaM, deltaT, m, r, n, L_D, deltaR)
+     ! now update r
+     r = r + deltaR
+
      return
   end if
 
   if (protostar_state .EQ. 4) then ! shell burning deuterium
-     call update_radius( deltaM, deltaT, m, r, n, L_D, L_MS, deltaR)
+     call update_radius( deltaM, deltaT, m, r, n, L_D, deltaR)
+     ! now update r
+     r = r + deltaR
+
      return
   end if
 
@@ -208,35 +226,73 @@ subroutine initialize_protostar( deltaM, deltaT, m, r, n, md, T_core)
 end subroutine initialize_protostar
 
 !double check this is all we require.
-subroutine update_radius( deltaM, deltaT, m, r, n, L_D, L_MS, deltaR)
+!subroutine update_radius_Offner( deltaM, deltaT, m, r, n, L_D, L_MS, deltaR)
+!  implicit none
+!
+!  double precision, intent( in) :: deltaM, deltaT, m, r, n, L_D, L_MS
+!  double precision, intent( out) :: deltaR
+!  double precision :: alpha_g! alpha_g describes the gravitational binding energy of a poltrope.
+!  double precision :: L_H, L_int, L_ion ! luminosity of hayashi track star of some radius r.
+!
+!  double precision, parameter :: L_solar = 3.839D33
+!  double precision, parameter :: M_solar = 1.989D33
+!  double precision, parameter :: f_k = 0.5 !fraction of the kinetic energy of the infalling material that is radiated away.
+!  ! Do need to look at how Offner et al. calculate Beta
+!  double precision, parameter :: Beta = 1  !Beta is the mean ratio of the gas pressure to total gas plus radiation pressure in the star.
+!  double precision, parameter :: Temp_H = 3000 ! surface temp of hayashi track star.
+!  double precision, parameter :: sigma = 5.67D-5 !stefan-Boltzmann cgs.
+!  double precision, parameter :: pi = 3.1415
+!
+!
+!  alpha_g = 3./(5. - n)
+!  write(*,*) alpha_g
+!
+!
+!  L_H = 4.*pi*r**2*sigma*Temp_H**4
+!  L_int = MAX(L_MS, L_H)  ! Need L_hayashi & L_ms to find the interior luminosity
+!  
+!  L_ion = 2.5 * L_solar * (deltaM/deltaT)/(1d-5 * M_solar/(pi*1D7))
+!! Offner et al. deltaR
+!  deltaR = 2.* (deltaM/m) * (1 - (1-f_k)/(alpha_g*Beta) + (1./2.)*(dlogBeta / dlogm)) * r - 2. * (deltaT / (alpha_g*Beta)) * (r/Gm*m)*(L_int + L_ion - L_D)*r
+!
+!  return
+!end subroutine update_radius_Offner
+
+
+subroutine update_radius( deltaM, deltaT, m, r, n, L_D, deltaR)
+  ! Nakano et al. 95 ApJ 450...183N Appendix A equation 27
+  use constants
   implicit none
 
-  double precision, intent( in) :: deltaM, deltaT, m, r, n, L_D, L_MS
+  double precision, intent( in) :: deltaM, deltaT, m, r, n, L_D
   double precision, intent( out) :: deltaR
-  double precision :: alpha_g! alpha_g describes the gravitational binding energy of a poltrope.
-  double precision :: L_H, L_int, L_ion ! luminosity of hayashi track star of some radius r.
 
-  double precision, parameter :: L_solar = 3.839D33
-  double precision, parameter :: M_solar = 1.989D33
-  double precision, parameter :: f_k = 0.5 !fraction of the kinetic energy of the infalling material that is radiated away.
-  ! Do need to look at how Offner et al. calculate Beta
-  double precision, parameter :: Beta = 1  !Beta is the mean ratio of the gas pressure to total gas plus radiation pressure in the star.
+  double precision :: L_H, L_int ! luminosity of hayashi track star of some radius r.
+  double precision :: L_star ! Luminosity of the star (nuclear burning)
+  double precision, parameter :: f_acc=1.0 ! This is a correction factor in Nakano 95. !TODO obtain this value
+  double precision, parameter :: a_e = 3./4.
+!  double precision, parameter :: L_solar = 3.839D33
+!  double precision, parameter :: M_solar = 1.989D33
+!  double precision, parameter :: f_k = 0.5 !fraction of the kinetic energy of the infalling material that is radiated away.
   double precision, parameter :: Temp_H = 3000 ! surface temp of hayashi track star.
   double precision, parameter :: sigma = 5.67D-5 !stefan-Boltzmann cgs.
-  double precision, parameter :: pi = 3.1415
 
-
-  alpha_g = 3./(5. - n)
-  write(*,*) alpha_g
-
+!  write(*,*) G, pi, a_e, f_acc
 
   L_H = 4.*pi*r**2*sigma*Temp_H**4
-  L_int = MAX(L_MS, L_H)  ! Need L_hayashi & L_ms to find the interior luminosity
+  !L_int = MAX(L_MS, L_H)  ! Need L_hayashi & L_ms to find the interior luminosity
   
-  L_ion = 2.5 * L_solar * (deltaM/deltaT)/(1d-5 * M_solar/(pi*1D7))
+!  L_ion = 2.5 * L_solar * (deltaM/deltaT)/(1d-5 * M_solar/(pi*1D7))
+  
+  ! Rough estimate for L_star currently !TODO Update this estimate
+  L_star = L_sun * m*m*m / m_sun**3
 
-!  deltaR = 2.* (deltaM/m) * (1 - (1-f_k)/(alpha_g*Beta) + (1./2.)*(dlogBeta / dlogm)) * r - 2. * (deltaT / (alpha_g*Beta)) * (r/Gm**2)*(L_int + L_ion - L_D)*r
+  L_int = 2.5 * L_sun * deltaM / (deltaT * 1.e-5 * M_sun)
 
+  deltaR = (2. - (1. + f_acc) / (2.*a_e)) * r * deltaM / m - r*r*deltaT*L_star * deltaM / (a_e * G * deltaM*m*m) &
+  + r*r*deltaM / (a_e*G*m*m) * (L_int*deltaT / deltaM - L_D*deltaT / deltaM)
+
+!  write(*,*) deltaR
   return
 end subroutine update_radius
 
