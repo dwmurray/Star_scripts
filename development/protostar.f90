@@ -14,8 +14,7 @@ program ps
   integer, parameter  :: proto_dim1=40, proto_dim2=40
   double precision, dimension(phi_dim1, phi_dim2) :: phi_eps_table
   double precision, dimension(proto_dim1, proto_dim2) :: proto_core_table
-
-
+  double precision :: mdot
 !  call init_phi_eps(phi_dim1, phi_dim2, phi_eps_table)
 
 ! Now that we have phi and eps, we need to get rho_core & P_core
@@ -23,21 +22,27 @@ program ps
 !  call init_P_and_rho_core(phi_dim1, phi_dim2, phi_eps_table, proto_dim1, proto_dim2, proto_core_table)
 
 ! Now proceed for the protostellar evolution.
-
   tage = 0.
-  deltaM = 1.e-5*M_sun
-  deltaT = 1!0.01
+  mdot = 1e-5*M_sun/yr
+  deltaT = 1.e4*yr!0.01
+  deltaM = mdot*deltaT
+
   m = 0.001 * M_sun
   protostar_state = 0
 !  n = 5./3.
 !  md = 0.
 
-  do while (tage .le. 1.e6)
-     call update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table)
+  do while (tage .le. 1.e7*yr)
+     if(tage > 1e6*yr) deltaM = 0.
+     call update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, yr, protostar_state, phi_dim1, phi_dim2, phi_eps_table)
 
      call protostar(tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table)
      m = m + deltaM
      tage = tage + deltaT
+     
+!     write(10,102) tage/3.15e7, r, m
+!102  format( 3(1pe10.4,2x))
+
 
   end do
   write(*,*) tage
@@ -48,10 +53,10 @@ program ps
 end program ps
 
 
-subroutine update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protostar_state, phi_dim1, phi_dim2, phi_eps_table)!(deltaM, deltaT, m, r, n, L_D, protostar_state)
+subroutine update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, yr, protostar_state, phi_dim1, phi_dim2, phi_eps_table)!(deltaM, deltaT, m, r, n, L_D, protostar_state)
   implicit none
 
-  double precision, intent( in) :: deltaM, deltaT, m
+  double precision, intent( in) :: deltaM, deltaT, m, yr
   integer, intent(in) :: phi_dim1, phi_dim2
   double precision, intent( in), dimension(phi_dim1,phi_dim2) :: phi_eps_table
 
@@ -72,14 +77,14 @@ subroutine update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protosta
         return
      else ! if it is now above 0.01 solar masses, it is in the no burning state.
         protostar_state = 1
-        call initialize_protostar( deltaM, deltaT, m, r, n, md, T_core) ! sets initial r, n, md for the particle.
+        call initialize_protostar( deltaM, deltaT, m, r, n, md, T_core, yr) ! sets initial r, n, md for the particle.
         return
      end if
   end if
 
   if ( protostar_state .EQ. 1) then
      ! Find Tcore
-     call set_T_core()
+!     call set_T_core()
      if (T_CORE .LT. 1.5D6) then
         protostar_state = 1
         return
@@ -132,7 +137,7 @@ subroutine protostar( tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_
   use constants
   implicit none
   
-  double precision, intent( in) :: tage, deltaM, deltaT, m
+  double precision, intent( in) :: tage, deltaM, deltaT, m!, yr
   integer, intent(in) :: phi_dim1, phi_dim2
   double precision, intent( in), dimension(phi_dim1,phi_dim2) :: phi_eps_table
 
@@ -142,75 +147,23 @@ subroutine protostar( tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_
 
   double precision :: deltaR, L_D, L_MS
 
-!  double precision, parameter :: M_solar = 1.989D33
-!  double precision, parameter :: R_solar = 6.96D10
-
-
-
-  ! If we've burned all deuterium then
-  L_D = 15. * L_sun * deltaM / (deltaT * 1.e-5 * M_sun)
-
-  if (protostar_state .EQ. 0) then   ! This is the pre-collapse state.
-     !write (*,*) "Pre-Collapse State."
-     r = 0.
-     lum = 0.
-     n = 0.
-     return
-  end if
-
-  if (protostar_state .EQ. 1) then ! This is updating the non-burning state.
-     !write (*,*) "m/m_sun = ", m/m_sun, 'and r/r_sun = ', r/r_sun
-     call update_radius( deltaM, deltaT, m, r, n, L_D, deltaR)
-     ! now update r
-     r = r + deltaR
-     return
-  end if
-
-
-  if (protostar_state .EQ. 2) then   ! Core-deuterium burning at fixed T_core state
-     call update_radius( deltaM, deltaT, m, r, n, L_D, deltaR)
-     ! now update r
-     r = r + deltaR
-
-     return
-  end if
-
-
-  if (protostar_state .EQ. 3) then  ! Core-deuterium burning at variable T_core state
-     call update_radius( deltaM, deltaT, m, r, n, L_D, deltaR)
-     ! now update r
-     r = r + deltaR
-
-     return
-  end if
-
-  if (protostar_state .EQ. 4) then ! shell burning deuterium
-     call update_radius( deltaM, deltaT, m, r, n, L_D, deltaR)
-     ! now update r
-     r = r + deltaR
-
-     return
-  end if
-
-  if (protostar_state .EQ. 5) then  !Main Sequence
-     ! set radius = r_ZAMS using Tout et al. 1996
-
-     return
-  end if
+  call update_radius( deltaM, deltaT, m, r)
+  
 
   return
 end subroutine protostar
 
-subroutine initialize_protostar( deltaM, deltaT, m, r, n, md, T_core)
+subroutine initialize_protostar( deltaM, deltaT, m, r, n, md, T_core, yr)
   implicit none
 
-  double precision, intent( in) :: deltaM, deltaT, m
+  double precision, intent( in) :: deltaM, deltaT, m, yr
   double precision, intent( out) :: r, n, md, T_core
 
   double precision, parameter :: M_solar = 1.989D33
   double precision, parameter :: R_solar = 6.96D10
 
-  r = ( 2.5 * R_solar) * ( deltaM / (deltaT * 1.E-5 * M_solar))**0.2
+  !init is from Offner et al. 2009 ApJ 703
+  r = ( 2.5 * R_solar) * ( deltaM * yr / (deltaT * 1.E-5 * M_solar))**0.2
 
   n = 5. - 3. * (1.475 + 0.07 * log10( deltaM / deltaT))**(-1.)
   if (n .LE. 1.5) then
@@ -259,49 +212,161 @@ end subroutine initialize_protostar
 !end subroutine update_radius_Offner
 
 
-subroutine update_radius( deltaM, deltaT, m, r, n, L_D, deltaR)
+subroutine update_radius( deltaM, deltaT, m, r)
   ! Nakano et al. 95 ApJ 450...183N Appendix A equation 27
   use constants
+
   implicit none
 
-  double precision, intent( in) :: deltaM, deltaT, m, r, n, L_D
-  double precision, intent( out) :: deltaR
 
-  double precision :: L_H, L_int ! luminosity of hayashi track star of some radius r.
-  double precision :: L_star ! Luminosity of the star (nuclear burning)
+  double precision, intent( in) :: deltaM, deltaT, m
+  double precision, intent( inout) :: r
+
+  double precision :: L_I, L_D
+
   double precision, parameter :: f_acc=1.0 ! This is a correction factor in Nakano 95. !TODO obtain this value
-  double precision, parameter :: a_e = 3./4.
+  double precision, parameter :: a_e = 3./4. ! 3/4. is for n = 3
 !  double precision, parameter :: L_solar = 3.839D33
 !  double precision, parameter :: M_solar = 1.989D33
 !  double precision, parameter :: f_k = 0.5 !fraction of the kinetic energy of the infalling material that is radiated away.
-  double precision, parameter :: Temp_H = 3000 ! surface temp of hayashi track star.
+!  double precision, parameter :: Temp_H = 3000 ! surface temp of hayashi track star.
   double precision, parameter :: sigma = 5.67D-5 !stefan-Boltzmann cgs.
-
+  double precision :: T_eff
+  double precision :: L_star, R_star ! ZAMS values
+  double precision :: mdot, beta
+  double precision :: deltaR
 !  write(*,*) G, pi, a_e, f_acc
 
-  L_H = 4.*pi*r**2*sigma*Temp_H**4
-  !L_int = MAX(L_MS, L_H)  ! Need L_hayashi & L_ms to find the interior luminosity
+!  L_H = 4.*pi*r**2*sigma*Temp_H**4
   
-!  L_ion = 2.5 * L_solar * (deltaM/deltaT)/(1d-5 * M_solar/(pi*1D7))
+! Rough estimate for L_star currently !TODO Update this estimate
+
+  call set_ZAMS( m + deltaM, L_star, R_star, beta)
+!  L_star = set_L_star(m, beta)!  L_star = L_sun * m*m*m / m_sun**3
+  !write(*,*) "called set_ZAMS", m+deltaM, L_star, R_star, beta  
+  mdot = deltaM/deltaT
+  L_D = 15. * L_sun * mdot/( 1.e-5 * M_sun/yr)
+  L_I = 2.5 * L_sun * mdot/( 1.e-5 * M_sun/yr) !dot{M} / 1e-5 M_sun per yr
+
+
+  !r = G*a_e*(m+deltaM)*mdot/L_star*(1. + beta - (1.+f_acc)/a_e*0.5)
+  deltaR = (2. - (1.+f_acc)/(2.*a_e)*r*deltaM/m - r/(a_e*G*m*m)*(L_star + L_I - L_D))*deltaT
+  r = r + deltaR 
+  !r = r + deltaR
+  !deltaR = (2. - (1. + f_acc) / (2.*a_e)) * r * deltaM / m - r*r*deltaT*L_star * deltaM / (a_e * G * deltaM*m*m) &
+  !     - r*r*deltaM / (a_e*G*m*m) * (L_I*deltaT / deltaM - L_D*deltaT / deltaM)
   
-  ! Rough estimate for L_star currently !TODO Update this estimate
-  L_star = L_sun * m*m*m / m_sun**3
+  if( r < R_star) then ! conditions to ZAMS
+     r = R_star
+  end if
+  write(*,*) "new mass radius", m+deltaM, r/r_sun, G*a_e*(m+deltaM)*mdot/L_star/r_sun, beta, R_star/r_sun
+  write(12,103) "L_* ",L_star , &
+       "L_I ", L_I , &
+       "L_D ", L_D , &
+       "f_acc ", (2. - (1. + f_acc) / (2.*a_e)), &
+       "RHS ", r*deltaT / (a_e * G * deltaM*m), &
+       "LHS ", r*deltaM /m
+103 format( 6(A6,(1pe10.4,2x)))
 
-  L_int = 2.5 * L_sun * deltaM / (deltaT * 1.e-5 * M_sun)
+!  deltaR = ((2. - (1. + f_acc) / (2.*a_e)) - r*deltaT*L_star / (a_e * G * deltaM*m) &
+!       - r / (a_e*G*m) * (L_I*deltaT / deltaM - L_D*deltaT / deltaM)) * (r*deltaM /m)
 
-  deltaR = (2. - (1. + f_acc) / (2.*a_e)) * r * deltaM / m - r*r*deltaT*L_star * deltaM / (a_e * G * deltaM*m*m) &
-  + r*r*deltaM / (a_e*G*m*m) * (L_int*deltaT / deltaM - L_D*deltaT / deltaM)
+  !deltaR =  - r*r*deltaT*L_star * deltaM / (a_e * G * deltaM*m*m) &
+  !deltaR = - r*r*deltaM / (a_e*G*m*m) * (L_I*deltaT / deltaM - L_D*deltaT / deltaM)
+  !T_eff = (L_star / (4.*pi*r*r*sigma_b))**0.25
+!  write(11,101) "T_eff", T_eff, "L_star", L_star/L_sun, "M_star", M/M_sun, "R_star", r/r_sun, "deltaR/r_sun", deltaR/r_sun
+!101 format( 4(A6,(1pe10.3,2x)), A12,(1pe10.3,2x))
 
-!  write(*,*) deltaR
   return
 end subroutine update_radius
 
-
-subroutine set_T_core()
+subroutine initialize_ZAMS
+  use constants
   implicit none
+  character(len=256) :: header
+  double precision :: m, r, l, age
+  integer :: line, ios
+  open( unit=15, file="ZAMS_ezer67.txt", status="old")
+  
+  ! skip the first line
+  read(15,*) header
+  line = 0
+  ios = 0
+  ! read data
+  do while( ios .eq. 0) 
+     read(15, *, iostat=ios) m, r, l, age
+     if( ios .eq. 0) then
+        line = line + 1
+        lgm_zams(line) = log10(m)
+        lgl_zams(line) = log10(l)
+        lgr_zams(line) = log10(r)
+     end if
+  end do
+  close(unit=15)
+
+  num_zams = line
+  
+  ! figure out beta
+  do line = 1, num_zams - 1
+     beta_zams(line) = (lgl_zams(line+1)-lgl_zams(line))/(lgm_zams(line+1)-lgm_zams(line)) 
+     betaR_zams(line) = (lgr_zams(line+1)-lgr_zams(line))/(lgm_zams(line+1)-lgm_zams(line)) 
+  end do
+  beta_zams(num_zams) = beta_zams(num_zams-1)
+  betaR_zams(num_zams) = betaR_zams(num_zams-1)
+  initialized_zams = .true.
 
   return
-end subroutine set_T_core
+end subroutine initialize_ZAMS
+
+subroutine set_ZAMS( M_star, L_star, R_star, beta)
+  use constants
+  implicit none
+  double precision, intent(in) :: M_star
+  double precision, intent(out) :: L_star, R_star, beta
+  double precision :: lgm, lgL, lgR
+  integer :: i 
+  if( .not. initialized_zams ) then
+     call initialize_zams
+  end if
+
+  lgm = log10(M_star/m_sun)
+  beta = 1.
+
+  if( lgm < lgm_zams(1)) then
+     lgL = lgl_zams(1) - beta_zams(1)*(lgm - lgm_zams(1))
+     lgR = lgr_zams(1) - betaR_zams(1)*(lgm - lgm_zams(1))
+     beta = beta_zams(1)
+  elseif( lgm >= lgm_zams(num_zams)) then
+     lgL = lgl_zams(num_zams) + beta_zams(num_zams)*(lgm - lgm_zams(num_zams))
+     lgR = lgr_zams(num_zams) + betaR_zams(num_zams)*(lgm - lgm_zams(num_zams))
+     beta = beta_zams(num_zams)
+  else
+     do i = 1, num_zams-1 
+        if( lgm .ge. lgm_zams(i) .and. lgm < lgm_zams(i+1)) then
+           lgL = lgl_zams(i) + beta_zams(i)*(lgm - lgm_zams(i))
+           lgR = lgr_zams(i) + betaR_zams(i)*(lgm - lgm_zams(i))
+           beta = beta_zams(i)
+        end if
+     end do
+  end if
+  
+  L_star = 1d1**lgL*L_sun
+  R_star = 1d1**lgR*R_sun
+
+  return
+end subroutine set_ZAMS
+
+function set_L_star(m, beta)
+  use constants
+  implicit none
+
+  double precision :: set_L_star
+  double precision, intent( in) :: m, beta ! Beta is power law slope
+
+
+  set_L_star = L_sun * (m / m_sun)**beta
+
+end function set_L_star
 
 subroutine set_L_MS(L_MS)
   implicit none

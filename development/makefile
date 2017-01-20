@@ -1,6 +1,6 @@
 #
 #F90 = g95
-F90 = gfortran
+F90 = gfortran -g 
 #F90 = ifort
 
 #newton: test_newton.o root_find.o protostellar_core.o constants.o

@@ -22,6 +22,9 @@ module constants
   real (r_15),parameter :: degrees_to_radians = pi / 180.d0
   real (r_15),parameter :: AU = 1.5d13, R_J = 7.d9, M_J = 1.91d30, year = 3.15e7
   real (r_15),parameter :: C_Spitzer = 1.2d-6   !Spitzer conductivity
-
+  real (r_15),parameter :: yr = 24.*3600.*365.24 
+  real (r_15), dimension(100) :: lgm_zams, lgl_zams, lgr_zams, beta_zams, betaR_zams
+  integer :: num_zams
+  logical :: initialized_zams = .false.
   
 end module constants
