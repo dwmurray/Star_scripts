@@ -57,14 +57,15 @@ def Obtain_particles(sinkfile) :
 		return
 	try : 
 		#ID, mass, xstar, ystar, zstar = numpy.loadtxt( sinkfile, usecols=[0,1,2,3,4], unpack=True, skiprows=3, comments="=")
-		ID, mass, xstar, ystar, zstar, vxstar, vystar, vzstar = numpy.loadtxt( sinkfile, usecols=[0,1,2,3,4,5,6,7], unpack=True, skiprows=3, comments="=")
+		# includes radius of protostar
+		ID, mass, r_star xstar, ystar, zstar, vxstar, vystar, vzstar = numpy.loadtxt( sinkfile, usecols=[0,1,2,3,4,5,6,7,8], unpack=True, skiprows=3, comments="=")
 	except ValueError : 
 		print 'no particles', 1+1
 		pass_to_std_out('no particles')
 #		ID=0
-		return ID, mass, xstar, ystar, zstar, vxstar, vystar, vzstar
+		return ID, mass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar
 	#return ID, mass, xstar, ystar, zstar
-	return ID, mass, xstar, ystar, zstar, vxstar, vystar, vzstar
+	return ID, mass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar
 
 def getRadialProfile_yt(pf, xc, yc, zc, vxc, vyc, vzc, fileout="rad_profile.out", radiusMin=1e-3, radiusSphere=3.0, particleMass = 0.0) : 
 	if (Sphere_Bulk):
@@ -996,7 +997,7 @@ def trackbackwards():
 					print sinkfile
 					pf = yt.load(file)
 					#particle_ID, partMass, xstar, ystar, zstar = Obtain_particles(sinkfile) #Ramses
-					particle_ID, partMass, xstar, ystar, zstar, vxstar, vystar, vzstar = Obtain_particles(sinkfile) #Ramses
+					particle_ID, partMass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar = Obtain_particles(sinkfile) #Ramses
 				particle_exists_here = True
 #				if (particle_exists_here):
 #					txt_output_file = '/home/m/murray/dwmurray/scratch/ramses_jeans_{0}/particle_location.txt'.format(filesys_location)
@@ -1190,7 +1191,8 @@ def Main_tracing_forwards():
 		print sinkfile
 		pf = yt.load(file)
 		#particle_ID, partMass, xstar, ystar, zstar = Obtain_particles(sinkfile)
-		particle_ID, partMass, xstar, ystar, zstar, vxstar, vystar, vzstar = Obtain_particles(sinkfile)
+		# Contains radius of protostar.
+		particle_ID, partMass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar = Obtain_particles(sinkfile)
 		# Need creation time, and current time from RAMSES
 		print particle_ID
 		print particle_ID.size
