@@ -58,7 +58,7 @@ def Obtain_particles(sinkfile) :
 	try : 
 		#ID, mass, xstar, ystar, zstar = numpy.loadtxt( sinkfile, usecols=[0,1,2,3,4], unpack=True, skiprows=3, comments="=")
 		# includes radius of protostar
-		ID, mass, r_star xstar, ystar, zstar, vxstar, vystar, vzstar = numpy.loadtxt( sinkfile, usecols=[0,1,2,3,4,5,6,7,8], unpack=True, skiprows=3, comments="=")
+		ID, mass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar = numpy.loadtxt( sinkfile, usecols=[0,1,2,3,4,5,6,7,8], unpack=True, skiprows=3, comments="=")
 	except ValueError : 
 		print 'no particles', 1+1
 		pass_to_std_out('no particles')
