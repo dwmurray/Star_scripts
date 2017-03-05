@@ -1452,8 +1452,8 @@ if (withParallel):
 	rank = comm.Get_rank()
 
 #filesys_location = str(withFilesyslocation)
-#filesys_location = '/home/m/murray/dwmurray/scratch/test-ramses/{0}/python_output'.format(withFilesyslocation)
-filesys_location = '/Users/dwmurray/Work/Ramses_hydro/{0}'.format(withFilesyslocation)
+filesys_location = '/home/m/murray/dwmurray/scratch/{0}/python_output'.format(withFilesyslocation)
+#filesys_location = '/Users/dwmurray/Work/Ramses_hydro/{0}'.format(withFilesyslocation)
 if (withSmallSphere):
 	compare_file = 'smallsphere'
 	Sphere_Bulk = True
