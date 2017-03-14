@@ -29,7 +29,7 @@ constants.o: constants.f90
 
 
 clean:
-	-rm *.o *.mod xprotostar
+	-rm *.o *.mod xprotostar Beta_interpolation_file.txt
 #
 #machine_epsilon: test_machine_epsilon.o machine_epsilon.o constants.o
 #	${F90} -o xtest_machine_epsilon test_machine_epsilon.o machine_epsilon.o constants.o
