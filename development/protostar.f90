@@ -3,7 +3,6 @@ program ps
   use constants
   implicit none
 
-  double precision   :: n_in, M_in, R_in
 
   integer, parameter :: n_step = 10
   double precision, parameter :: logM_step = 0.1, logR_step = 0.1
@@ -13,22 +12,24 @@ program ps
 
   ! n_step * (m_max - m_min)/logM_step * (R_max - R_min)/logR_step
   ! Is the minimum size for beta_table_dim.
-  integer, parameter :: beta_table_dim1 = 36000, beta_table_dim2 = 7 !dim2 is n, M, R, rho_core, P_core, Beta_core, Beta_mean
-!  integer ::   beta_table_dim = n_step * (M_max - M_min)/logM_step * (R_max - R_min)/logR_step
-
+!  integer, parameter :: beta_table_dim1 = 36000, beta_table_dim2 = 7 !dim2 is n, M, R, rho_core, P_core, Beta_core, Beta_mean
+  integer, parameter :: beta_table_dim1 = n_step * (log10(M_max) - log10(M_min))/logM_step * (log10(R_max) - log10(R_min))/logR_step
+  !The above technically drops the last line but said line is for n = 3.3 so we do not use it.
+  integer, parameter :: beta_table_dim2 = 7!dim2 is n, M, R, rho_core, P_core, Beta_core, Beta_mean
   !this arrays will hold the table to interpolate beta from.
   double precision, dimension(beta_table_dim1, beta_table_dim2) :: Beta_file_table
   double precision            :: Beta, Beta_m_r, dlogBetadlogM
+  double precision            :: Beta_core_m_r, dlogBeta_coredlogM
 
   ! These declarations are used for the driver to follow a protostar through its evolution.
   double precision           :: tage, mdot, deltaT, deltaM, lum, n, M, R, md
+  double precision           :: n_in, M_in, R_in
   integer                    :: protostar_state
-  ! Why pass Tcore?
-  double precision           :: T_core
 
-  !holding here for now
-  double precision       :: L_D, L_MS, deltaR
+  !test
+  double precision         :: mdot0
 
+  write(*,*) beta_table_dim1
   call create_beta_table_file(n_min, n_max, n_step, M_min, M_max, logM_step, R_min, R_max, logR_step)
   !check reading the values back
   !fill the arrays with the values from the Beta table file.
@@ -41,38 +42,36 @@ program ps
   R_in = 1.001*R_sun
   do while( n_in .LE. 3.0)
      ! Now interpolate and obtain Beta(n_in,M_in,R_in)
-     call obtain_Beta(n_in, M_in, R_in, beta_table_dim1, beta_table_dim2, Beta_file_table, Beta_m_r)
-     call obtain_dlogBetadlogM(n_in, M_in, R_in, Beta_m_r, beta_table_dim1, beta_table_dim2, Beta_file_table, dlogBetadlogM)
+     call obtain_Beta(n_in, M_in, R_in, beta_table_dim1, beta_table_dim2, Beta_file_table, Beta_m_r, Beta_core_m_r)
+     call obtain_dlogBetadlogM(n_in, M_in, R_in, Beta_m_r, Beta_core_m_r, &
+          beta_table_dim1, beta_table_dim2, Beta_file_table, dlogBetadlogM, dlogBeta_coredlogM)
 
-     write(*,*) Beta_m_r, dlogBetadlogM
+     write(*,*) Beta_m_r, Beta_core_m_r, dlogBetadlogM, dlogBeta_coredlogM
 
      n_in = n_in + 0.1
   end do
-  write(*,*) 'Test complete.'
+  write(*,*) 'Check of Beta & dlogBetadlogM complete.'
 ! Now proceed for the protostellar evolution.
   tage = 0.
-  mdot = 1e-5*M_sun/yr
-  deltaT = 1.e4*yr!0.01
+  mdot0 =1e-6*M_sun/yr
+  mdot = 1e-6*M_sun/yr
+  deltaT = 1.e2*yr!0.01
   deltaM = mdot*deltaT
 
   m = 0.001 * M_sun
   protostar_state = 0
-!  n = 5./3.
-!  md = 0.
-!  Beta = Beta_m_r
-!  L_int = 5.
-!  L_D = 5.
-  do while (tage .le. 1.e7*yr)
-     if(tage > 1e6*yr) deltaM = 0.
-     call update_protostar_state( deltaM, deltaT, m, r, n, md, T_core, protostar_state)!, Beta_m_r, dlogBetadlogM)
-!     call update_radius( deltaM, deltaT, n, m, r, Beta, dlogBetadlogM, L_int, L_D, deltaR)
-!     call update_radius( deltaM, deltaT, m, r, n, L_D, L_MS, deltaR)
-!     call protostar(tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_state)!, phi_dim1, phi_dim2, phi_eps_table)
+  do while (tage .le. 1.e6*yr)
+     mdot = mdot0 + mdot0 * tage / (1D5*yr)
+     deltaM = mdot*deltaT
+
+!     if(tage > 1e6*yr) then
+!     end if
+     call update_protostar( deltaM, deltaT, m, r, n, md, protostar_state, &
+          beta_table_dim1, beta_table_dim2, Beta_file_table)
      m = m + deltaM
      tage = tage + deltaT
-
-
   end do
+
   write(*,*) tage
   write(*,*) "m/m_sun = ", m/m_sun, "r/r_sun = ", r/r_sun
   write(*,*) r," ", lum
@@ -80,91 +79,157 @@ program ps
   stop
 end program ps
 
-subroutine update_protostar_state( deltaM, deltaT, M, R, n, md, T_core, protostar_state)
+subroutine update_protostar( deltaM, deltaT, M, R, n, md, protostar_state, &
+     beta_table_dim1, beta_table_dim2, Beta_file_table)
   use constants
   implicit none
 
-  double precision, intent( in) :: deltaM, deltaT, M
-  double precision, intent( inout) :: R, n, md, T_core
-  integer, intent( inout) :: protostar_state
-  double precision, parameter :: f_rad = 0.33 ! used to update to shell deuterium burning.
+  double precision, intent( in)    :: deltaM, deltaT, M
+  integer, intent( in)             :: beta_table_dim1, beta_table_dim2
+  double precision, dimension(beta_table_dim1, beta_table_dim2), intent( in) :: Beta_file_table
+  double precision, intent( inout) :: R, n, md
+  integer, intent( inout)          :: protostar_state
+  double precision, parameter      :: f_rad = 0.33 ! used to update to shell deuterium burning.
+  double precision                 :: Beta_m_r, dlogBetadlogM, Beta_core_m_r, dlogBeta_core_dlogM
+  double precision                 :: L_int, L_ion, L_D, deltaR
+  double precision                 :: T_core
+  !ZAMS checks
+  double precision                 :: L_ZAMS, R_ZAMS, beta_ZAMS1
 
-  double precision :: Beta, dlogBetadlogM, L_int, L_ion, L_D, deltaR
+103 format(3(A5,(1pe14.5,2x)))
+102 format(2(A6,(1pe14.5,2x)))
+101 format(1(A5,(1pe14.5,2x)))
 
   if (protostar_state .EQ. 0) then
-     if (m .LT. (0.01 * M_sun)) then   ! if the mass is below 0.01 solar masses then we do not initialize
-        protostar_state = 0   ! This is considered the pre-collapse state.
-        return
-     else ! if it is now above 0.01 solar masses, it is in the no burning state.
-!        write(*,*) 'init protostar'
+     ! if the mass is below 0.01 solar masses then we do not initialize
+     if( m .GE. (0.01 * M_sun)) then! if it is now above 0.01 solar masses, it is in the no burning state.
+        write(*,*) 'init protostar'
         protostar_state = 1
         call initialize_protostar( deltaM, deltaT, M, R, n, md, T_core) ! sets initial n, r, md, T_core for the particle.
-        return
      end if
+     return
   end if
 
   if ( protostar_state .EQ. 1) then !No burning State.
-!  call set_ZAMS( m + deltaM, L_star_ZAMS, R_star_ZAMS, beta_ZAMS)
-
-!     call obtain_Beta(n_in, M_in, R_in, beta_table_dim, &
-!          n_table, M_table, R_table, rho_c_table, P_c_table, Beta_c_table, Beta_mean_table, Beta_m_r) !obtain Beta
-
-!     call obtain_dlogBetadlogM(n_in, M_in, R_in, Beta_m_r, beta_table_dim, &
-!          n_table, M_table, R_table, rho_c_table, P_c_table, Beta_c_table, Beta_mean_table, dlogBetadlogM) !obtain dlogBetadlogM
-
+     call obtain_Beta(n, M, R, beta_table_dim1, beta_table_dim2, Beta_file_table, Beta_m_r, Beta_core_m_r) !Returns Beta_m_r
+     call obtain_dlogBetadlogM(n, M, R, Beta_m_r, Beta_core_m_r, &
+          beta_table_dim1, beta_table_dim2, Beta_file_table, dlogBetadlogM, dlogBeta_core_dlogM) !Return dlogbetadlogM
      call set_L_internal(M, R, L_int) !Set L_int
      call set_L_ionize(deltaM, deltaT, L_ion) !Set L_ion
-     L_D = 0.0 ! No burning deuterium
-!     write(*,*) 'L_internal', L_int
-     call update_radius( deltaM, deltaT, n, M, R, Beta, dlogBetadlogM, L_int, L_ion, L_D, deltaR)     
+     call set_L_deuterium(n, M, R, deltaM, deltaT, protostar_state, L_int, L_ion, &
+          Beta_m_r, Beta_core_m_r, dlogBetadlogM, dlogBeta_core_dlogM, L_D)! Set L_D
+!     call set_L_deuterium(n, M, R, deltaM, deltaT, protostar_state, L_int, L_ion, Beta_m_r, dlogBetadlogM, L_D)! Set L_D
+     write(*,102) 'M/Msun', M/M_sun, 'R/Rsun', R/R_sun
+     write(*,103) 'L_int', L_int, 'L_ion', L_ion, 'L_D  ', L_D
+
+     call update_radius( deltaM, deltaT, n, M, R, Beta_m_r, dlogBetadlogM, L_int, L_ion, L_D)!returns an updated R
+
+     ! Find Tcore and check to see if we need to update the protostar state.
+     call determine_T_core(n, M, R, T_core)
+     write(*,101) 'T_c/T', T_core/1.5D6
+!     write(*,101) 'MDeut', md
+     if (T_core .GE. 1.5D6) then
+        write(*,*) 'core burn'
+        protostar_state = 2 ! update to core burning at fixed T_core
+        !Offner et al. 2009 below B14
+        n = 1.5
+        !Init deuterium mass to burn.
+        !Offner et al. 2009 B3
+        md = m
+
+     end if
+     return
+  end if
+  
+  if (protostar_state .EQ. 2) then ! Core burning at fixed T_core
+     call obtain_Beta(n, M, R, beta_table_dim1, beta_table_dim2, Beta_file_table, Beta_m_r, Beta_core_m_r) !Returns Beta_m_r
+     call obtain_dlogBetadlogM(n, M, R, Beta_m_r, Beta_core_m_r, &
+          beta_table_dim1, beta_table_dim2, Beta_file_table, dlogBetadlogM, dlogBeta_core_dlogM) !Return dlogbetadlogM
+     call set_L_internal(M, R, L_int) !Set L_int
+     call set_L_ionize(deltaM, deltaT, L_ion) !Set L_ion
+     call set_L_deuterium(n, M, R, deltaM, deltaT, protostar_state, L_int, L_ion, &
+          Beta_m_r, Beta_core_m_r, dlogBetadlogM, dlogBeta_core_dlogM, L_D)! Set L_D
+     call update_radius( deltaM, deltaT, n, M, R, Beta_m_r, dlogBetadlogM, L_int, L_ion, L_D)!returns an updated R
+!     write(*,103) 'L_int', L_int, 'L_ion', L_ion, 'L_D', L_D
      ! Find Tcore
      call determine_T_core(n, M, R, T_core)
-!     write(*,*) 'T_core', T_core
-     if (T_core .LT. 1.5D6) then
-        protostar_state = 1
-        return
-     else
-        protostar_state = 2 ! update to core burning at fixed T_core
+     write(*,101) 'T_fix', T_core/1.5D6
+
+     call update_md(deltaM, deltaT, L_D, md) !returns an updated md
+!     write(*,101) 'MDeut', md
+     if (md .EQ. 0.0) then 
+        write(*,*) 'core burn variable'
+        protostar_state = 3 ! update to core burning at variable T_core
+     end if
+     return
+  end if
+
+  if (protostar_state .EQ. 3) then ! Core burning at Variable T_core
+     call obtain_Beta(n, M, R, beta_table_dim1, beta_table_dim2, Beta_file_table, Beta_m_r, Beta_core_m_r) !Returns Beta_m_r
+     call obtain_dlogBetadlogM(n, M, R, Beta_m_r, Beta_core_m_r, &
+          beta_table_dim1, beta_table_dim2, Beta_file_table, dlogBetadlogM, dlogBeta_core_dlogM) !Return dlogbetadlogM
+     call set_L_internal(M, R, L_int) !Set L_int
+     call set_L_ionize(deltaM, deltaT, L_ion) !Set L_ion
+     call set_L_deuterium(n, M, R, deltaM, deltaT, protostar_state, L_int, L_ion, &
+          Beta_m_r, Beta_core_m_r, dlogBetadlogM, dlogBeta_core_dlogM, L_D)! Set L_D
+     call update_radius( deltaM, deltaT, n, M, R, Beta_m_r, dlogBetadlogM, L_int, L_ion, L_D)!returns an updated R
+     call determine_T_core(n, M, R, T_core)
+!     write(*,101) 'T_var', T_core/1.5D6
+!     write(*,101) 'MDeut', md
+     !compare L_D to L_ms
+     call set_ZAMS( m, L_ZAMS, R_ZAMS, beta_ZAMS1)
+!     write
+     write(*,103) 'L_D', L_D, 'L_ZAMS', L_ZAMS, 'ratio', L_D/L_ZAMS
+
+     write(*,102) 'M/Msun', M/M_sun, 'R/Rsun', R/R_sun
+!     write(*,103) 'L_int', L_int, 'L_ion', L_ion, 'L_D  ', L_D
+
+!     write(*,103) 'L_int', L_int, 'L_ZAMS', L_ZAMS, 'ratio', L_int/L_ZAMS
+     !Never seem to validate this condition.
+     if( L_D / L_ZAMS .GE. f_rad) then !L_D/L_ZAMS > 0.33
+        write(*,*) 'shell burn'
+        protostar_state = 4 ! update to shell burning deuterium
+        n = 3.
+        R = 2.1 * R ! represents a swelling of star due to formation of the radiative barrier
+        stop
+     end if
+     return
+  end if
+
+  if (protostar_state .EQ. 4) then
+!     write(*,*) 'Shell Burning deuterium'
+     call obtain_Beta(n, M, R, beta_table_dim1, beta_table_dim2, Beta_file_table, Beta_m_r, Beta_core_m_r) !Returns Beta_m_r
+     call obtain_dlogBetadlogM(n, M, R, Beta_m_r, Beta_core_m_r, &
+          beta_table_dim1, beta_table_dim2, Beta_file_table, dlogBetadlogM, dlogBeta_core_dlogM) !Return dlogbetadlogM
+     call set_L_internal(M, R, L_int) !Set L_int
+     call set_L_ionize(deltaM, deltaT, L_ion) !Set L_ion
+     call set_L_deuterium(n, M, R, deltaM, deltaT, protostar_state, L_int, L_ion, &
+          Beta_m_r, Beta_core_m_r, dlogBetadlogM, dlogBeta_core_dlogM, L_D)! Set L_D
+     call update_radius( deltaM, deltaT, n, M, R, Beta_m_r, dlogBetadlogM, L_int, L_ion, L_D)!returns an updated R
+!     write(*,103) 'L_internal', L_int, 'L_ionize', L_ion, 'L_D', L_D
+     call determine_T_core(n, M, R, T_core)
+!     write(*,101) 'T_c/T', T_core/1.5D6
+!     write(*,101) 'MDeut', md
+
+
+     !compare R to R_ZAMS
+     call set_ZAMS( m + deltaM, L_ZAMS, R_ZAMS, beta_ZAMS1)
+     write(*,103) 'R/R_sun', R/R_sun, 'RZAMS', R_ZAMS/R_sun, 'ratio', R/R_ZAMS
+
+     if( R .LE. R_ZAMS) then
+        protostar_state = 5 ! update to main sequence star.
+        R = R_ZAMS !Set R to R_ZAMS and it stays at that value.
+        write(*,*) 'At Main Sequence.'
         return
      end if
   end if
-!  
-!  if (protostar_state .EQ. 2) then
-!     call update_md(deltaM, deltaT, L_D, md)
-!     if (md .GT. 0.0) then
-!        protostar_state = 2
-!        return
-!     else
-!        protostar_state = 3 ! update to core burning at variable T_core
-!        return
-!     end if
-!  end if
-!
-!  if (protostar_state .EQ. 3) then
-!     !compare L_D to L_ms
-!!     call set_L_D()
-!!     call set_L_MS(L_MS)
-!     if (L_D/L_MS .LT. f_rad) then
-!        protostar_state = 3
-!        return
-!     else
-!        protostar_state = 4 ! update to shell burning deuterium
-!        return
-!     end if
-!  end if
-!
-!  if (protostar_state .EQ. 4) then
-!     ! Compare r to r_ms
-!     if (r .GT. (r_ms + (0.05 * r_ms))) then ! Need them to be close, not exactly equal
-!        protostar_state = 4
-!        return
-!     else
-!        protostar_state = 5 ! update to main sequence star.
-!        return
-!     end if
-!  end if
-!
-end subroutine update_protostar_state
+
+  if( protostar_state .EQ. 5) then
+     call set_ZAMS( m + deltaM, L_ZAMS, R_ZAMS, beta_ZAMS1)
+     R = R_ZAMS
+  end if
+
+end subroutine update_protostar
 
 
 !subroutine protostar( tage, deltaM, deltaT, m, r, lum, n, md, T_core, protostar_state)!, phi_dim1, phi_dim2, phi_eps_table) 
@@ -192,11 +257,15 @@ subroutine initialize_protostar( deltaM, deltaT, m, r, n, md, T_core)
 
   double precision, intent( in) :: deltaM, deltaT, m
   double precision, intent( out) :: r, n, md, T_core
+  double precision :: mdot
 
+  mdot = deltaM / deltaT
+  write(*,*) mdot *yr/M_sun
   !init is from Offner et al. 2009 ApJ 703
   r = ( 2.5 * R_sun) * ( deltaM * yr / (deltaT * 1.E-5 * M_sun))**0.2
 
-  n = 5. - 3. * (1.475 + 0.07 * log10( deltaM / deltaT))**(-1.)
+  n = 5. - 3. / (1.475 + 0.07 * log10(mdot*yr/M_sun))
+  write(*,*) n
   if (n .LE. 1.5) then
      n = 1.5
   else if (n .GE. 3) then
@@ -205,19 +274,19 @@ subroutine initialize_protostar( deltaM, deltaT, m, r, n, md, T_core)
 
   md = m
   T_core = 0.
-
   return
 end subroutine initialize_protostar
 
-!double check this is all we require.
-subroutine update_radius( deltaM, deltaT, n, m, r, Beta, dlogBetadlogM, L_int, L_ion, L_D, deltaR)
+subroutine update_radius( deltaM, deltaT, n, m, r, Beta, dlogBetadlogM, L_int, L_ion, L_D)
   use constants
   implicit none
 
-  double precision, intent( in) :: deltaM, deltaT, n, m, r, Beta, dlogBetadlogM, L_int, L_D
-  double precision, intent( out) :: deltaR
+  double precision, intent( in) :: deltaM, deltaT, n, m, Beta, dlogBetadlogM, L_int, L_ion, L_D
+  double precision, intent( out) :: R !deltaR
+  double precision :: deltaR
+  double precision :: L_ZAMS, R_ZAMS, beta_ZAMS1 !Values from the ZAMS file. !beta_ZAMS1 to avoid conflict with constants beta_ZAMS
   double precision :: alpha_g! alpha_g describes the gravitational binding energy of a poltrope.
-  double precision :: L_H, L_ion ! luminosity of hayashi track star of some radius r.
+
   double precision, parameter :: f_k = 0.5 !fraction of the kinetic energy of the infalling material that is radiated away.
 
   alpha_g = 3./(5. - n)
@@ -225,6 +294,18 @@ subroutine update_radius( deltaM, deltaT, n, m, r, Beta, dlogBetadlogM, L_int, L
 ! Offner et al. deltaR
   deltaR = 2.* (deltaM/m) * (1 - (1-f_k)/(alpha_g*Beta) + &
        (1./2.)*(dlogBetadlogM)) * r - 2. * (deltaT / (alpha_g*Beta)) * (r/G/m/m)*(L_int + L_ion - L_D)*r
+
+  R = R + deltaR
+  ! Checking vs ZAMS
+  call set_ZAMS( m + deltaM, L_ZAMS, R_ZAMS, beta_ZAMS1)
+
+!103 format(4(A5,(1pe14.5,2x)))
+!  write(*,103) 'DeltR', deltaR/R_sun, 'R    ', R/R_sun, 'RZAMS', R_ZAMS/R_sun, 'ratio', R/R_ZAMS
+
+  if( R < R_ZAMS) then ! conditions to ZAMS
+     R = R_ZAMS
+  end if
+
 
   return
 end subroutine update_radius
@@ -351,8 +432,8 @@ subroutine set_ZAMS( M_star, L_star, R_star, beta)
   beta = 1.
 
   if( lgm < lgm_zams(1)) then
-     lgL = lgl_zams(1) - beta_zams(1)*(lgm - lgm_zams(1))
-     lgR = lgr_zams(1) - betaR_zams(1)*(lgm - lgm_zams(1))
+     lgL = lgl_zams(1) + beta_zams(1)*(lgm - lgm_zams(1))
+     lgR = lgr_zams(1) + betaR_zams(1)*(lgm - lgm_zams(1))
      beta = beta_zams(1)
   elseif( lgm >= lgm_zams(num_zams)) then
      lgL = lgl_zams(num_zams) + beta_zams(num_zams)*(lgm - lgm_zams(num_zams))
@@ -401,6 +482,43 @@ subroutine set_L_ionize(deltaM, deltaT, L_ion)
 
 end subroutine set_L_ionize
 
+subroutine set_L_deuterium(n, M, R, deltaM, deltaT, protostar_state, L_int, L_ion, &
+     Beta_m_r, Beta_core_m_r, dlogBeta_dlogM, dlogBeta_core_dlogM, L_D)! Set L_D
+  use constants
+  implicit none
+  
+  integer,          intent( in)   :: protostar_state
+  double precision, intent( in)   :: n, M, R, deltaM, deltaT
+  double precision, intent( in)   :: L_int, L_ion
+  double precision, intent( in)   :: Beta_m_r, Beta_core_m_r, dlogBeta_dlogM, dlogBeta_core_dlogM
+  double precision, intent( out)  :: L_D
+  double precision, parameter     :: f_k = 0.5 !fraction of the kinetic energy of the infalling material that is radiated away.
+  double precision                :: alpha_g! alpha_g describes the gravitational binding energy of a poltrope.
+  double precision                :: mdot
+
+!  !To Do! obtain dlogBeta_core / dlogM
+!  dlogBeta_core_dlogM = -4.8911310542155833E-007 !until the subroutine call is put in.
+
+  alpha_g = 3./(5. - n)
+  mdot = deltaM / deltaT
+
+  if( protostar_state .EQ. 1) then
+     L_D = 0.0
+  else if( protostar_state .EQ. 2) then
+!     write(*,*) 'core burn'
+     !Offner et al. 2009 expression B8
+     L_D =  L_int + L_ion + G * M / R * mdot * (1. - f_k - alpha_g*Beta_m_r*0.5 * (1. + dlogBeta_dlogM - dlogBeta_core_dlogM))
+  else
+!     write(*,*) 'shell burn'
+     !Offner et al. 2009 expression B9
+     L_D = 15. *L_sun * mdot * yr / 1.e-5 / M_sun
+!     L_D = 15. * L_sun * mdot/ 1.e-5 * M_sun/yr
+
+
+  end if
+  return
+end subroutine set_L_deuterium
+
 subroutine determine_T_core(n, M, R, T_core)
   use constants
   use rk2_polytrope
@@ -421,6 +539,9 @@ subroutine determine_T_core(n, M, R, T_core)
   double precision, parameter :: machine_tolerance = 1e-14, Beta_guess = 0.5
   logical            :: file_exist
 
+  !To Do make a call to find root to explicitly solve for T_core.
+  !We can not call to polytrope because we have CHANGED n across the different protostar states.
+
   call polytrope(n, eps1, dphideps1, phi1) !Returns eps1, dphideps1 and phi1 all eval. at eps1.
   !Find rho and P at the core for the given n, M, R
   rho_core = determine_rho_core(M, R, eps1, dphideps1)
@@ -428,36 +549,35 @@ subroutine determine_T_core(n, M, R, T_core)
   
   !Solve for Beta_core
   call find_root(n, rho_core, P_core, Beta_guess, machine_tolerance, find_root_maxiter, Beta_core)
-  
+
+
+
   ! Checks on the core temperature
   T_core_by_betacore = (k_b * 3. / (mu * m_p * a_rad) *(1 - Beta_core) / Beta_core)**(1./3.) * rho_core**(1./3.)
   T_core_by_Pcore = mu * m_p * Beta_core * P_core / k_b / rho_core
   ! These two methods of calculating the core temperature agree fairly well. 
-
-  T_core = (T_core_by_Pcore + T_core_by_betacore) * 0.5
-!  if (M/M_sun .LT. 5.0) then
-!     write(*,*) 'mass', M/M_sun
-!     write(*,*)'Temp', T_core_by_betacore/1.e6, T_core_by_Pcore/1.e6
-!  end if
-  ! Check the stellar radius
-!  R_star_check = ((n+1)*K_value/4./pi/G)**0.5 *rho_core**((1-n)/2./n) * eps
-!  write(*,*) 'Input: ', R/7.D10 , 'Check: ', R_star_check/7.D10
-
-
+  T_core = T_core_by_Pcore
+!  T_core = (T_core_by_Pcore + T_core_by_betacore) * 0.5
 end subroutine determine_T_core
 
 subroutine update_md(deltaM, deltaT, L_D, md)
+  use constants
   implicit none
   double precision, intent( in) :: deltaM, deltaT, L_D
   double precision, intent( inout) :: md
   double precision :: deltaMd
 
-  double precision, parameter :: M_solar = 1.989D33
-  double precision, parameter :: L_solar = 3.839D33
+!  deltaMd = deltaM - 1.D-5 * M_solar * (L_D / (15.*L_solar)) * deltaT
+  deltaMd = deltaM - 1.D-5 * M_sun * L_D / (15. * L_sun) * deltaT / yr
 
-  deltaMd = deltaM - (1.D-5 * M_solar * (L_D / (15.*L_solar)) * deltaT)
+!  write(*,*) 'deltaMd', deltaMd, 'deltaM', deltaM, 'deltaT', deltaT, 'L_D', L_D
+!  write(*,*) 1.D-5 * M_sun * L_D / (15. * L_sun) * deltaT / yr
 
-  md = md - deltaMd
+!103 format(2(A5,(1pe14.5,2x)))
+!  write(*,103) 'delmd', deltaMd, 'md   ', md
+
+
+  md = md + deltaMd !deltaMd is negative.
 
   if (md .LT. 0.0) then
      md = 0.0
@@ -531,7 +651,7 @@ subroutine create_beta_table_file(n_min, n_max, n_step, M_min, M_max, logMstep, 
 !           R_star_check = ((n+1)*K_value/4./pi/G)**0.5 *rho_core**((1-n)/2./n) * eps1
 !           write(*,*) 'R/R_sun', 'Input: ', R/R_sun , 'Check: ', R_star_check/R_sun, 'ratio: ', R_star_check/R
 
-           call phi_of_eps(n, eps1, M, R, rho_core, P_core, K_value, Beta_core, find_root_maxiter, phi_eps_iter, Beta_mean)
+           call determine_Beta_mean(n, eps1, M, R, rho_core, P_core, K_value, Beta_core, find_root_maxiter, phi_eps_iter, Beta_mean)
 !           write(*,*) n, M/M_sun, R/R_sun
 !           write(*,*) 'Beta_core', Beta_core, 'Beta_mean', Beta_mean
 
@@ -688,13 +808,13 @@ end subroutine create_beta_table_file
 !end subroutine init_P_and_rho_core
 
 
-subroutine phi_of_eps(n, eps1, M_star, R_star, rho_core, P_core, K_value, Beta_core, find_root_maxiter, phi_eps_iter, Beta_mean)
+subroutine determine_Beta_mean(n, eps1, M_star, R_star, rho_core, P_core, K_value, Beta_core, &
+     find_root_maxiter, phi_eps_iter, Beta_mean)
   ! This subroutine will calculate phi(eps), from that rho(eps) and then Beta(eps) and Beta_mean w.r.t. Pressure.
   ! This subroutine will calculate rho(r) = rho_core * phi(r)**n
   ! and P(r) = K_value * rho(r)**gamma
   ! and then call root_find.f90 to find the beta(r)
   ! which is then used to integrate over to find the mean beta.
-
   use rk2_polytrope
   use root_find
   use constants
@@ -703,18 +823,12 @@ subroutine phi_of_eps(n, eps1, M_star, R_star, rho_core, P_core, K_value, Beta_c
   double precision, intent( in)  :: n, eps1, M_star, R_star, rho_core, P_core, K_value, Beta_core
   integer, intent( in)           :: find_root_maxiter, phi_eps_iter
   double precision, intent( out) :: Beta_mean
+  double precision, parameter    :: machine_tolerance = 1e-14, Beta_guess = 0.5
   double precision :: eps_r, dphideps_r, phi_r
   double precision :: eps, deps, phi, dphideps, r_0
   double precision :: rho_r, P_r, Beta_r, r, dr
-  integer :: i
-
-  double precision, parameter    :: machine_tolerance = 1e-14, Beta_guess = 0.5
   double precision :: Pressure_Beta_Integral, Pressure_Integral
-
-
-!  write(*,*) 'n', n, 'M', M_star/M_sun, 'R', R_star/R_sun
-!  write(*,*) 'B_core', Beta_core, 'rho_core', rho_core, 'P_core', P_core
-
+  integer          :: i
   !Initialize Integrals at zero
   Pressure_Beta_Integral = 0
   Pressure_Integral = 0
@@ -755,7 +869,7 @@ subroutine phi_of_eps(n, eps1, M_star, R_star, rho_core, P_core, K_value, Beta_c
 !  write(*,*) Pressure_Beta_Integral, Pressure_Integral, Beta_mean
 !  write(*,*)'Beta_core', Beta_core, 'Beta_mean', Beta_mean
 
-end subroutine phi_of_eps
+end subroutine determine_Beta_mean
 
 
 !subroutine obtain_interp_values_from_beta_table(n_in, M_in, R_in, beta_table_dim)
@@ -901,65 +1015,15 @@ end subroutine phi_of_eps
 !
 !end subroutine obtain_interp_values_from_beta_table
 !
-
-
-!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!
 !
-!subroutine find_length_of_beta_table(length_of_beta_table)
-!  use constants
-!  implicit none
-!
-!  integer                       :: index, ios
-!  integer, intent( out)         :: length_of_beta_table
-!
-!  open( unit=16, file="Beta_interpolation_file.txt", status="old")
-!  index = 0
-!  ios = 0
-!  do while( ios .eq. 0)
-!     read(16, *, iostat=ios)
-!     if( ios .eq. 0) then
-!        index = index + 1
-!     end if
-!  end do
-!  close(unit=16)
-!  length_of_beta_table = index
-!
-!end subroutine find_length_of_beta_table
-!
-subroutine init_beta_table_values(beta_table_dim1, beta_table_dim2, Beta_file_table)! &
-!     n_table, M_table, R_table, rho_c_table, P_c_table, Beta_c_table, Beta_mean_table, Test_table)
-
+subroutine init_beta_table_values(beta_table_dim1, beta_table_dim2, Beta_file_table)
   use constants
   implicit none
+
   integer, intent( in)                        :: beta_table_dim1, beta_table_dim2
-!  double precision, dimension(beta_table_dim) :: n_table, M_table, R_table
-!  double precision, dimension(beta_table_dim) :: rho_c_table, P_c_table
-!  double precision, dimension(beta_table_dim) :: Beta_c_table, Beta_mean_table
   double precision, dimension(beta_table_dim1, beta_table_dim2) :: Beta_file_table
   double precision                            :: n, M, R, rho_core, P_core, Beta_core, Beta_mean
-  double precision                            :: logM_in, logR_in, logBeta_m_r
-  integer                                     :: line, ios, index
-  integer, parameter                          :: nvars = 2 
-  double precision, dimension(nvars, nvars)   :: n_bracket, M_bracket, R_bracket
-  double precision, dimension(nvars, nvars)   :: rho_core_bracket, P_core_bracket, Beta_core_bracket
-  double precision, dimension(nvars, nvars)   :: Beta_mean_bracket
-
-!  call find_length_of_beta_table(beta_table_dim)
-
-!  open( unit=16, file="Beta_interpolation_file.txt", status="old")
-!  line = 0
-!  ios = 0
-!  do while( ios .eq. 0)
-!     read(16, *, iostat=ios)
-!     if( ios .eq. 0) then
-!        line =line + 1
-!     end if
-!  end do
-!  close(unit=16)
-!  beta_table_dim = line
-
-!  write(*,*) beta_table_dim
+  integer                                     :: line, ios
 
   open( unit=16, file="Beta_interpolation_file.txt", status="old")
   line = 0
@@ -969,13 +1033,6 @@ subroutine init_beta_table_values(beta_table_dim1, beta_table_dim2, Beta_file_ta
      read(16, *, iostat=ios) n, M, R, rho_core, P_core, Beta_core, Beta_mean
      if( ios .eq. 0) then
         line = line + 1
-!        n_table(line) = n
-!        M_table(line) = M
-!        R_table(line) = R
-!        rho_c_table(line) = rho_core
-!        P_c_table(line) = P_core
-!        Beta_c_table(line) = Beta_core
-!        Beta_mean_table(line) = Beta_mean
         Beta_file_table(line, 1) = n
         Beta_file_table(line, 2) = M
         Beta_file_table(line, 3) = R
@@ -986,32 +1043,28 @@ subroutine init_beta_table_values(beta_table_dim1, beta_table_dim2, Beta_file_ta
      end if
   end do
   close(unit=16)
-!  write(*,*) 'writing array values:'
-!  write(*,*) n_table(2), M_table(2), R_table(2), Beta_c_table(2)
-
 end subroutine init_beta_table_values
 
 
-subroutine obtain_Beta(n_in, M_in, R_in, beta_table_dim1, beta_table_dim2, Beta_file_table, Beta_m_r)! &
-!     n_table, M_table, R_table, rho_c_table, P_c_table, Beta_c_table, Beta_mean_table, Beta_m_r, Test_table)
-
+subroutine obtain_Beta(n_in, M_in, R_in, beta_table_dim1, beta_table_dim2, Beta_file_table, Beta_m_r, Beta_core_m_r)
   use constants
   implicit none
-  double precision, intent( in)               :: n_in, M_in, R_in
-  integer, intent( in)                        :: beta_table_dim1, beta_table_dim2
+
+  double precision, intent( in)                :: n_in, M_in, R_in
+  integer, intent( in)                         :: beta_table_dim1, beta_table_dim2
   double precision, intent( in), dimension(beta_table_dim1, beta_table_dim2) :: Beta_file_table
   !Populate these from Beta_file_table.
   double precision, dimension(beta_table_dim1) :: n_table, M_table, R_table, rho_c_table, P_c_table
   double precision, dimension(beta_table_dim1) :: Beta_c_table, Beta_mean_table
 
-  double precision, intent( out)              :: Beta_m_r!, dlogBetadlogM_in
-  double precision                            :: n, M, R, rho_core, P_core, Beta_core, Beta_mean
-  double precision                            :: logM_in, logR_in, logBeta_m_r
-  integer                                     :: line, ios, index
-  integer, parameter                          :: nvars = 2
-  double precision, dimension(nvars, nvars)   :: n_bracket, M_bracket, R_bracket
-  double precision, dimension(nvars, nvars)   :: rho_core_bracket, P_core_bracket, Beta_core_bracket
-  double precision, dimension(nvars, nvars)   :: Beta_mean_bracket
+  double precision, intent( out)               :: Beta_m_r, Beta_core_m_r
+  double precision                             :: n, M, R, rho_core, P_core, Beta_core, Beta_mean
+  double precision                             :: logM_in, logR_in, logBeta_m_r, logBeta_core_m_r
+  integer                                      :: line, index
+  integer, parameter                           :: nvars = 2
+  double precision, dimension(nvars, nvars)    :: n_bracket, M_bracket, R_bracket
+  double precision, dimension(nvars, nvars)    :: rho_core_bracket, P_core_bracket, Beta_core_bracket
+  double precision, dimension(nvars, nvars)    :: Beta_mean_bracket
   
   logM_in = log10(M_in)
   logR_in = log10(R_in)
@@ -1026,22 +1079,17 @@ subroutine obtain_Beta(n_in, M_in, R_in, beta_table_dim1, beta_table_dim2, Beta_
      Beta_c_table(line)    = Beta_file_table(line, 6)
      Beta_mean_table(line) = Beta_file_table(line, 7)
   end do
-  
 
   !We are always overestimating in n. the way we get around this is by having many n's to compare to.
   !thus, if our n_in = 1.6 and our n = 1.61 we will use the correct M_old<M_in<M and R_old<R_in<R
-  ! for this n > n_in.
+  ! for this n (1.61) > n_in (1.6).
   index = 1
-!  write(*,*) 'testing call.'
   do while (index .LE. beta_table_dim1)
      if(n_table(index) .GE. n_in) then
         if(M_table(index) .LT. M_in .and. M_table(index+1) .GE. M_in) then
-!           write(*,*) index, index+1, M_table(index),M_table(index+1)
         end if
         if(R_table(index) .LT. R_in .and. R_table(index+1) .GE. R_in) then
-           !write(*,*) index, index+1, R_table(index),R_table(index+1)
            if(M_table(index) .LT. M_in) then
-!              write(*,*) index, index+1, R_table(index),R_table(index+1), M_table(index),M_table(index+1)
               n_bracket(1,1) = n_table(index)
               M_bracket(1,1) = log10(M_table(index))
               R_bracket(1,1) = log10(R_table(index))
@@ -1059,7 +1107,6 @@ subroutine obtain_Beta(n_in, M_in, R_in, beta_table_dim1, beta_table_dim2, Beta_
               Beta_mean_bracket(1,2) = log10(Beta_mean_table(index+1))
 
            else if(M_table(index) .GE. M_in) then
-!              write(*,*) index, index+1, R_table(index),R_table(index+1), M_table(index),M_table(index+1)
               n_bracket(2,1) = n_table(index)
               M_bracket(2,1) = log10(M_table(index))
               R_bracket(2,1) = log10(R_table(index))
@@ -1094,52 +1141,43 @@ subroutine obtain_Beta(n_in, M_in, R_in, beta_table_dim1, beta_table_dim2, Beta_
   Beta_m_r = 10**logBeta_m_r
 !  write(*,*) logBeta_m_r, Beta_m_r
 
+  call interpolate(nvars, logM_in, logR_in, M_bracket, R_bracket, Beta_core_bracket, logBeta_core_m_r)!feed in X_bracket, M_bracket, R_bracket, nvars
+  Beta_core_m_r = 10**logBeta_core_m_r
+
 end subroutine obtain_Beta
 
-subroutine obtain_dlogBetadlogM(n_in, M_in, R_in, Beta_m_r, beta_table_dim1, beta_table_dim2, Beta_file_table, dlogBetadlogM)! &
-!     n_table, M_table, R_table, rho_c_table, P_c_table, Beta_c_table, Beta_mean_table, dlogBetadlogM, Test_table)
+subroutine obtain_dlogBetadlogM(n_in, M_in, R_in, Beta_m_r, Beta_core_m_r, &
+     beta_table_dim1, beta_table_dim2, Beta_file_table, dlogBetadlogM, dlogBeta_coredlogM)
   use constants
-
   implicit none
-  double precision, intent( in)               :: n_in, M_in, R_in, Beta_m_r
-  integer, intent( in)                        :: beta_table_dim1, beta_table_dim2
-!  double precision, intent( in), dimension(Beta_table_dim) :: n_table, M_table, R_table, rho_c_table, P_c_table
-!  double precision, intent( in), dimension(Beta_table_dim) :: Beta_c_table, Beta_mean_table
-  double precision, intent( in), dimension(Beta_table_dim1, Beta_table_dim2) :: Beta_file_table
-  double precision, intent( out)              :: dlogBetadlogM
 
+  double precision, intent( in)               :: n_in, M_in, R_in, Beta_m_r, Beta_core_m_r
+  integer, intent( in)                        :: beta_table_dim1, beta_table_dim2
+  double precision, intent( in), dimension(Beta_table_dim1, Beta_table_dim2) :: Beta_file_table
+  double precision, intent( out)              :: dlogBetadlogM, dlogBeta_coredlogM
   !for obtaining dlogBeta/dlogM
   double precision, parameter                 :: deriv_step = 1.D-1
-  double precision                            :: n_prime, M_prime, R_prime, Beta_prime_m_r
-  double precision                            :: dlogBeta, dlogM
-
-  double precision         :: logM_in, logR_in, logM_prime, logR_prime
+  double precision                            :: n_prime, M_prime, R_prime, Beta_prime_m_r, Beta_prime_core_m_r
+  double precision                            :: dlogBeta, dlogBeta_core, dlogM
 
   !We now have Beta(M_in,R_in), so we now pick a location close to Beta(M_in+M_in*deriv_step,R_in+R_in*deriv_step)
   !Interp to find that beta value, and then use that to determine dlogBeta/dlogM
   n_prime = n_in
-
-!  logM_in = log10(M_in)
-!  logM_prime = logM_in + logM_in * deriv_step
-!  M_prime = 10**logM_prime
   M_prime = M_in + M_in * deriv_step
-
-!  logR_in = log10(R_in)
-!  logR_prime = logR_in + logR_in * deriv_step
-!  R_prime = 10**logR_prime
-!  R_prime = R_in + R_in * deriv_step
   R_prime = R_in
 
-
-!  write(*,*) 'Obtaining Beta Prime'
-  call obtain_Beta(n_prime, M_prime, R_prime, Beta_table_dim1, Beta_table_dim2, Beta_file_table, Beta_prime_m_r)! &
-!       n_table, M_table, R_table, rho_c_table, P_c_table, Beta_c_table, Beta_mean_table, Beta_prime_m_r, Test_table)  
-
+  call obtain_Beta(n_prime, M_prime, R_prime, Beta_table_dim1, Beta_table_dim2, Beta_file_table, &
+       Beta_prime_m_r, Beta_prime_core_m_r)
 !  write(*,*) 'Beta & Beta prime', Beta_m_r, Beta_prime_m_r
 
   dlogBeta = log10(Beta_prime_m_r) - log10(Beta_m_r)
   dlogM    = log10(M_prime) - log10(M_in)
   dlogBetadlogM = dlogBeta/dlogM
+
+
+  dlogBeta_core = log10(Beta_prime_core_m_r) - log10(Beta_core_m_r)
+  dlogM    = log10(M_prime) - log10(M_in)
+  dlogBeta_coredlogM = dlogBeta_core/dlogM
 
 end subroutine obtain_dlogBetadlogM
 
@@ -1149,16 +1187,12 @@ subroutine interpolate(nvars, logM_in, logR_in, M_bracket, R_bracket, X_bracket,
   integer, intent( in)            :: nvars
   double precision, intent( in), dimension(nvars, nvars) :: M_bracket, R_bracket, X_bracket!these are in log space
   double precision, intent( in)   :: logM_in, logR_in
-
-  !double precision, intent( in)  :: logX_mi_ri, logX_mi_1_ri, logX_mi_ri_1, logX_mi_1_ri_1
-  !double precision, intent( in)  :: logX_mi, logX_mi_1, logX_ri, logX_ri_1
-  !double precision, intent( in)  :: logm, logmi, logmi_1, logr, logri, logri_1
   double precision, intent( out) :: logX_m_r
   double precision               :: delta_logm, delta_logr
   double precision               :: logX_m_r1, logX_m_r2
 
   delta_logm = logM_in - M_bracket(1,1)
-  delta_logr = logR_in - R_bracket(1,1)!logri
+  delta_logr = logR_in - R_bracket(1,1)
 
   !mi,ri     = 1,1
   !mi,ri+1   = 1,2
@@ -1168,11 +1202,9 @@ subroutine interpolate(nvars, logM_in, logR_in, M_bracket, R_bracket, X_bracket,
   !Interpolating over M, then interpolating over R.
   !logX(m,r1) = X(m1,r1) + ((X(m2,r1) - X(m1,r1)) / (M(m2) - M(m1))) - M(m1,r1)
   logX_m_r1 = X_bracket(1,1) + (X_bracket(2,1) - X_bracket(1,1))/ (M_bracket(2,1) - M_bracket(1,1)) * (logM_in - M_bracket(1,1))
-!  logX_m_ri = logX_mi_ri + (logX_mi_1_ri - logX_mi_ri) / (logmi_1 - logmi) * (logm - logmi)
 
   !logX(m,r2) = X(m1,r2) + ((X(m2,r2) - X(m1,r2)) / (M(m2) - M(m1))) - M(m1,r1)
   logX_m_r2 = X_bracket(1,1) + (X_bracket(2,1) - X_bracket(1,1))/ (M_bracket(2,1) - M_bracket(1,1))
-!  logX_m_ri_1 = logX_mi_ri_1 + (logX_mi_1_ri_1 - logX_mi_ri_1) / (logmi_1 - logmi) * (logm - logmi)
 
   logX_m_r = logX_m_r1 + (logX_m_r2 - logX_m_r1) / (R_bracket(1,2) - R_bracket(1,1)) * (logR_in - R_bracket(1,1))
 

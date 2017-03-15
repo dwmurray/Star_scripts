@@ -18,6 +18,7 @@ contains
 
     rho_avg = 3.*M / (4*pi*R**3)
     determine_rho_core = -(eps1 / 3.) * (1./dphideps1) * rho_avg
+
     !write(*,*) M, R, rho_avg
     !rho_core = M / (R**3)
 
