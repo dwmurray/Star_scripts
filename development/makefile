@@ -9,10 +9,10 @@ F90 = gfortran -g
 #test_newton.o: test_newton.f90 root_find.o protostellar_core.o constants.o
 #	${F90} -c test_newton.f90
 ##
-protostar: clean protostar.o rk2.o root_find.o protostellar_core.o constants.o
-	${F90} -o xprotostar protostar.o rk2.o root_find.o protostellar_core.o constants.o
+protostar: clean protostar.o rk2.o root_find.o protostellar_core.o constants.o protostar_parameters.o
+	${F90} -o xprotostar protostar.o rk2.o root_find.o protostellar_core.o constants.o protostar_parameters.o
 #
-protostar.o: protostar.f90 rk2.o root_find.o protostellar_core.o constants.o
+protostar.o: protostar.f90 rk2.o root_find.o protostellar_core.o constants.o protostar_parameters.o
 	${F90} -c protostar.f90
 #
 rk2.o: rk2.f90
@@ -26,6 +26,9 @@ protostellar_core.o: protostellar_core.f90 constants.o
 #
 constants.o: constants.f90
 	${F90} -c constants.f90
+
+protostar_parameters.o: protostar_parameters.f90
+	${F90} -c protostar_parameters.f90
 
 
 clean:
