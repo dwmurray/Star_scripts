@@ -56,16 +56,40 @@ def Obtain_particles(sinkfile) :
 	if( not os.path.isfile( sinkfile)) :
 		return
 	try : 
-		#ID, mass, xstar, ystar, zstar = numpy.loadtxt( sinkfile, usecols=[0,1,2,3,4], unpack=True, skiprows=3, comments="=")
+		ID, mass, xstar, ystar, zstar = numpy.loadtxt( sinkfile, usecols=[0,1,2,3,4], unpack=True, skiprows=3, comments="=")
+	except ValueError : 
+		print 'no particles'
+		pass_to_std_out('no particles')
+		return ID, mass, xstar, ystar, zstar, vxstar, vystar, vzstar
+	return ID, mass, xstar, ystar, zstar, vxstar, vystar, vzstar
+
+def Nakano_Obtain_particles(sinkfile) :
+	if( not os.path.isfile( sinkfile)) :
+		return
+	try : 
 		# includes radius of protostar
 		ID, mass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar = numpy.loadtxt( sinkfile, usecols=[0,1,2,3,4,5,6,7,8], unpack=True, skiprows=3, comments="=")
 	except ValueError : 
 		print 'no particles', 1+1
 		pass_to_std_out('no particles')
-#		ID=0
 		return ID, mass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar
-	#return ID, mass, xstar, ystar, zstar
 	return ID, mass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar
+
+
+def Offner_Obtain_particles(sinkfile) :
+	if( not os.path.isfile( sinkfile)) :
+		return
+	try : 
+		# includes radius of protostar
+#		ID, mass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar, poly_n, md, polystate = numpy.loadtxt( sinkfile, usecols=[0,1,2,3,4,5,6,7,8], unpack=True, skiprows=3, comments="=")
+		ID, mass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar, poly_n, md, polystate = numpy.loadtxt( sinkfile, unpack=True, skiprows=3, comments="=")
+	except ValueError : 
+		print 'no particles'
+		pass_to_std_out('no particles')
+#		return ID, mass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar
+	return ID, mass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar, poly_n, md, polystate
+#	return ID, mass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar
+
 
 def getRadialProfile_yt(pf, xc, yc, zc, vxc, vyc, vzc, fileout="rad_profile.out", radiusMin=1e-3, radiusSphere=3.0, particleMass = 0.0) : 
 	if (Sphere_Bulk):
@@ -1415,6 +1439,7 @@ parser.add_argument('--first', action='store_true')
 parser.add_argument('--second', action='store_true')
 parser.add_argument('--parallel', action='store_true')
 parser.add_argument('--FLASH4', action='store_true')
+parser.add_argument('--scinet', action='store_true')
 #parser.add_argument('--partrestart', action='store_true')
 args = parser.parse_args()
 
@@ -1433,6 +1458,7 @@ withFirstHalf = args.first
 withSecondHalf = args.second
 withParallel = args.parallel
 withFLASH4 = args.FLASH4
+withScinet = args.scinet
 # These calls eventually go to the python written outputs
 withShell = args.shell
 withShellSphere = args.shellsphere
@@ -1452,8 +1478,10 @@ if (withParallel):
 	rank = comm.Get_rank()
 
 #filesys_location = str(withFilesyslocation)
-filesys_location = '/home/m/murray/dwmurray/scratch/{0}/python_output'.format(withFilesyslocation)
-#filesys_location = '/Users/dwmurray/Work/Ramses_hydro/{0}'.format(withFilesyslocation)
+if (withScinet):
+	filesys_location = '/home/m/murray/dwmurray/scratch/{0}/python_output'.format(withFilesyslocation)
+else:
+	filesys_location = '/Users/dwmurray/Work/{0}'.format(withFilesyslocation)
 if (withSmallSphere):
 	compare_file = 'smallsphere'
 	Sphere_Bulk = True
