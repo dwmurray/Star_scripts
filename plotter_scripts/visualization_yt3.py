@@ -10,6 +10,7 @@ import sys
 #from PIL import Image
 
 def annotate_particles( yt_object, sinkfile, plot_type="density", width=(16, "pc")) :
+	print sinkfile
 	if( not os.path.isfile( sinkfile)) :
 		return
 	# get axis 
@@ -22,7 +23,7 @@ def annotate_particles( yt_object, sinkfile, plot_type="density", width=(16, "pc
 	yt_object.save(junkfile)
 	pc = 3.0857e18
 	try : 
-		mass, xstar, ystar, zstar = np.loadtxt( sinkfile, usecols=[1,2,3,4], unpack=True, skiprows=3, comments="=")
+		mass, rstar, xstar, ystar, zstar = np.loadtxt( sinkfile, usecols=[1,2,3,4,5], unpack=True, skiprows=3, comments="=")
 		if( mass.size > 0 ) : 
 			ax.scatter(xstar/pc+xlim[0], ystar/pc+ylim[0], color="black")
 			# reset the limits
@@ -37,7 +38,7 @@ def particle_ID_locations(sinkfile, current_item) :
 	if( not os.path.isfile( sinkfile)) :
 		return
 	try : 
-		ID, mass, xstar, ystar, zstar = np.loadtxt( sinkfile, usecols=[0,1,2,3,4], unpack=True, skiprows=3, comments="=")
+		ID, mass, rstar, xstar, ystar, zstar = np.loadtxt( sinkfile, usecols=[0,1,2,3,4,5], unpack=True, skiprows=3, comments="=")
 	except ValueError : 
 		1+1
 	print ID[current_item], mass[current_item], xstar[current_item], ystar[current_item], zstar[current_item]
@@ -78,17 +79,18 @@ def Projection_plotting(pf, ParticleID, xc, yc, zc, zoom_width=2.0):
 	p.save(fileout)
 
 
-def Slice(pf, zoom_width = 2.0) :
+def Slice(pf, xc, yc, zc, zoom_width=2.0) :
         plot_out_prefix = 'movieframe'
 	sp = pf.h.sphere([xc, yc, zc], (zoom_width + 0.5, "pc"))
 	# Get the angular momentum vector for the sphere.
-	L = sp.quantities["angular_momentum_vector"]()
+	L = sp.quantities.angular_momentum_vector()
 	# Create an OffAxisSlicePlot on the object with the L vector as its normal
 	plot_field = 'density'
 
 	# What axis do we plot along?
 	Axis_to_plot = L
-	p = yt.OffAxisSlicePlot(pf, Axis_to_plot, plot_field, sp.center, (zoom_width, "pc"))
+#	p = yt.OffAxisSlicePlot(pf, Axis_to_plot, plot_field, center=sp.center, width=(zoom_width, "pc"))
+	p = yt.OffAxisSlicePlot(pf, Axis_to_plot, plot_field, center=(xc, yc, zc), width=(zoom_width, "pc"))
 	p.set_zlim("density", 1e-23,1e-14)
 	if(withArrows):
 		#p.annotate_velocity(factor=16)
@@ -173,8 +175,11 @@ for i in range(args.start,args.end,args.step) :
 		#Proj_plotting(pf, zoom_width)
 			Projection_plotting(pf, ParticleID, xc, yc, zc, zoom_width=2.0)
 	elif (withSlice):
-		ParticleID, ParticleMass, ParticleX, ParticleY, ParticleZ = particle_ID_locations(sinkfile, current_item)
-		Slice(pf, zoom_width)
+		for current_item in range(len(ID)):
+#			ParticleID, Particlemass, ParticleX, ParticleY, ParticleZ = particle_ID_locations(sinkfile, current_item)
+			Particle_ID, ParticleMass, xc, yc, zc = particle_ID_locations(sinkfile, current_item)
+			if Particle_ID == withParticleIDValue:
+				Slice(pf, xc, yc, zc, zoom_width)
 		#slice( file, xc, yc, zc, zoom_width)
 	else:
 		print 'need to specify what plotting, slice or projection.'
