@@ -1,0 +1,30 @@
+#!/bin/bash
+#SBATCH -J Serial     # job Name
+#SBATCH -o Serial.o%j       # output and error file name (%j expands to jobID)
+#SBATCH -e Serial.e%j       # output and error file name (%j expands to jobID)
+#SBATCH -n 1             # total number of mpi tasks requested
+#SBATCH -p serial # queue (partition) name -- normal, development, etc.
+#SBATCH -t 04:00:00        # run time (hh:mm:ss) - 1.5 hours
+#SBATCH --mail-user=dwmurray@uwm.edu
+#SBATCH --mail-type=begin  # email me when the job starts
+#SBATCH --mail-type=end    # email me when the job finishes
+#SBATCH -A TG-AST130004
+
+#export LD_LIBRARY_PATH=$HOME/local/lib:$LD_LIBRARY_PATH
+source $HOME/yt-x86_64/bin/activate
+module unload intel
+module load gcc
+cd $SLURM_SUBMIT_DIR
+
+#python scripts/power_spec.py
+#python scripts/sfr.py
+#python scripts/rad_analysis.py
+#python scripts/tracking_hi_density.py 100 115
+#python scripts/tracking_multi_density.py 90 95
+#python scripts/track_most_massive.py 100 105 135 &
+#python scripts/track_most_massive.py 105 110 135 &
+#python scripts/track_most_massive.py 110 115 135 &
+python scripts/tracking_star.py most_massive_stars.data 90 138
+#python scripts/visualization.py 0 85
+#python scripts/visualization.py 85 116 --particle
+wait
