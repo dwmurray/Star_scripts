@@ -48,13 +48,8 @@ parser.add_argument('end', metavar='N2', type=int)
 parser.add_argument('step', metavar='N3', type=int)
 args = parser.parse_args()
 
-phil_home = '/home/m/murray/dwmurray/phil-ramses/turbulent/'
-home = '/home/m/murray/dwmurray/scratch/ramses-jet/'
-
-dirs = [phil_home+"medres/jet", phil_home+"medres/nojet", home +"medres/jet", home+"medres/nojet"]
-#dirs = ["hires/jet", "hires/nojet", "medres/jet", "medres/nojet"]
-labels = ["P$8K^3$ jet", "Pno jet","$D8K^3$ jet", "Dno jet"]
-#labels = ["$16K^3$ jet", "no jet", "$8K^3$ jet", "no jet"]
+dirs = ["hires/jet", "hires/nojet", "medres/jet", "medres/nojet"]
+labels = ["$16K^3$ jet", "no jet", "$8K^3$ jet", "no jet"]
 ltypes = ["solid", "dashed", "solid", "dashed"]
 lweights = [4, 4, 2, 2]
 for dir, label, ltype, lw in zip(dirs,labels,ltypes,lweights): 
@@ -73,13 +68,14 @@ for dir, label, ltype, lw in zip(dirs,labels,ltypes,lweights):
 		try : 
 			mass, xstar, ystar, zstar = numpy.loadtxt( sinkfile, usecols=[1,2,3,4], unpack=True, skiprows=3, comments="=")
 			pf = yt.load(file)
-			time = pf.current_time.convert_to_cgs()
+			time = pf.current_time#.convert_to_cgs()
 			if( first_time and mass.size > 0) :
 				t_start = time
 				first_time = False
 			if( not first_time) :
 				mtot.append(mass.sum())
 				tarray.append(time-t_start)
+                                #print "time = " + str(tarray[-1]/3.15e7)
 		except ValueError : 
 			print sinkfile + " empty" 
 	#slice( file, moviefile)
@@ -117,4 +113,4 @@ pl.legend(loc="best",fontsize=20)
 pl.xticks(fontsize=17)
 pl.yticks(fontsize=17)
 
-pl.savefig("test.pdf")
+pl.savefig("/home/m/murray/dwmurray/scratch/test.pdf")
