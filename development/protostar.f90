@@ -19,8 +19,8 @@ program ps
   double precision           :: tage, mdot, deltaT, deltaM, lum, n, M, R, md
   double precision           :: n_in, M_in, R_in
   integer                    :: protostar_state
-  double precision         :: mdot0
-  double precision         :: tend, M_end, tau
+  double precision           :: mdot0
+  double precision           :: tend, M_end, tau
 
   write(*,*) beta_table_dim1
   !fill the arrays with the values from the Beta table file.

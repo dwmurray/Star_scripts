@@ -8,7 +8,7 @@ This script obtains its data from the rad_profile*.out produced by all_profiles*
 import matplotlib
 matplotlib.use("Agg")
 from matplotlib import rc
-rc("text", usetex=True)
+#rc("text", usetex=True)
 from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
 rcParams['axes.linewidth'] = 2
@@ -326,6 +326,7 @@ def Pressure_Gravity_ratio(rbin, rhobin, vrmsbin, mTbin):
 	P_thermal_bin = rhobin * c_s*c_s
 	P_turbulent_bin = rhobin * vrmsbin*vrmsbin
 	P_rotational_bin = rhobin * vphi_magbin*vphi_magbin
+#	print 'Creates P_thermal'
 
 	dP_thermal[1:-1] = P_thermal_bin[2:] - P_thermal_bin[:-2]
 	dP_turbulent[1:-1] = P_turbulent_bin[2:] - P_turbulent_bin[:-2]
@@ -793,13 +794,13 @@ for framestep in range(args.start,args.end,args.step) :
 		#particle_number = int(particle_number)
 		if particle_number == withParticleIDValue or (withAllParticles):
 			print "Plotting particle", j+1, 'of', len(particle_list)
-			filein = '{0}_{1:04d}_{2}{3}.0.out'.format(file_prefix, framestep, compare_files, particle_number)
+			filein = '{0}_{1:05d}_{2}{3}.0.out'.format(file_prefix, framestep, compare_files, particle_number)
 			particle_file_exist =  glob.glob(filein)
 			print filein
 			if not particle_file_exist:
 				print 'File: ', filein, ' does not exist!'
 				print "Trying without the zero."
-				filein = '{0}_{1:04d}_{2}{3}.out'.format(file_prefix, framestep, compare_files, particle_number)
+				filein = '{0}_{1:05d}_{2}{3}.out'.format(file_prefix, framestep, compare_files, particle_number)
 				particle_file_exist =  glob.glob(filein)
 				print filein
 				if not particle_file_exist:
