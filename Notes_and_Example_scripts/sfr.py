@@ -20,7 +20,7 @@ def annotate_particles( yt_object, sinkfile, plot_type="density", width=(16, "pc
 	junkfile = "junk{0}.png".format(pid)
 	yt_object.save(junkfile)
 	pc = 3.0857e18
-	mass, xstar, ystar, zstar = numpy.loadtxt( sinkfile, usecols=[1,2,3,4], unpack=True, skiprows=3, comments="=")
+	mass, rstar, xstar, ystar, zstar = numpy.loadtxt( sinkfile, usecols=[1,2,3,4,5], unpack=True, skiprows=3, comments="=")
 	if( mass.size > 0 ) : 
 		ax.scatter(xstar/pc+xlim[0], ystar/pc+ylim[0], color="black")
 		# reset the limits
@@ -58,7 +58,7 @@ for i in range(args.start,args.end,args.step) :
 	sinkfile = prefix+"{0:05d}/sink_{0:05d}.info".format(i)
 	mass = None
 	try : 
-		mass, xstar, ystar, zstar = numpy.loadtxt( sinkfile, usecols=[1,2,3,4], unpack=True, skiprows=3, comments="=")
+		mass, rstar, xstar, ystar, zstar = numpy.loadtxt( sinkfile, usecols=[1,2,3,4,5], unpack=True, skiprows=3, comments="=")
 		pf = yt.load(file)
 		time = pf.current_time
 		if( first_time and mass.size > 0) :
@@ -87,10 +87,11 @@ for t, m in zip(tarray, mtot) :
 	print t, m
 
 pl.loglog( tarray, mtot, linewidth=2,label="simulation")
-pl.xlim(1e5, 5e6)
+pl.xlim(1e5, 2e6)
 arr =  numpy.arange(2e5, 3e6, 2e5)
 pl.loglog( arr, 0.1*(arr/1e6)**2, linewidth=2, ls="dotted",label="$\\propto (t-t_*)^2$")
-pl.ylim(1e-3, 1.0)
+pl.loglog( arr, 0.1*(arr/1e6), linewidth=2, ls="dashed",label="$\\propto (t-t_*)$")
+pl.ylim(5e-4, 0.2)
 pl.xlabel("$t-t_*$ [yrs]", fontsize=20)
 pl.ylabel("$M_*/M_{\\rm tot}$", fontsize=20)
 pl.legend(loc="best",fontsize=20)
