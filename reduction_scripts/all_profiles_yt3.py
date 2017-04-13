@@ -27,7 +27,7 @@ import glob
 from yt import YTArray
 from shutil import copyfile
 
-def getRadialProfile_yt(pf, xc, yc, zc, vxc, vyc, vzc, fileout="rad_profile.out", radiusMin=1e-3, radiusSphere=3.0, particleMass = 0.0) : 
+def getRadialProfile_yt(pf, xc, yc, zc, vxc, vyc, vzc, fileout="rad_profile.out", radiusMin=1e-3, radiusSphere=3.0, ParticleMass = 0.0) : 
 	if (Bulk_by_Sphere_in_Shell): #Bigsphere
 		sp = pf.h.sphere((xc, yc, zc), radiusSphere/pf['pc'])
 		sp2 = pf.h.sphere((xc, yc, zc), Bulk_sphere_radius/pf['pc'])
@@ -52,7 +52,7 @@ def getRadialProfile_yt(pf, xc, yc, zc, vxc, vyc, vzc, fileout="rad_profile.out"
 
 	rbin = rp["Radiuspc"]
 	vrbin = rp["RadialVelocity"]
-	mTbin = rp["CellMassMsun"] + particleMass
+	mTbin = rp["CellMassMsun"] + ParticleMass
 	vKbin = numpy.sqrt(G*mTbin*Msun/(parsec*rbin))
 	rhobin = rp["Density"]
 	mdotbin = 4.0*3.141*rbin**2*vrbin*rhobin
@@ -74,8 +74,8 @@ def getRadialProfile_yt(pf, xc, yc, zc, vxc, vyc, vzc, fileout="rad_profile.out"
 	
 	numpy.savetxt(fileout, zip(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, rhobin, mdotbin, norm, angXbin, angYbin, angZbin), fmt="%15.9E")
 
-def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_time, fileout="rad_profile.out", radiusMin=1e-3, radiusSphere=3.0, particleMass = 0.0) : 
-	global Penrose_matrix_particles
+def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_time, fileout="rad_profile.out", radiusMin=1e-3, radiusSphere=3.0, ParticleMass = 0.0) : 
+	global Penrose_matrix_Particles
 	print 'Sphere radius is: ', radiusSphere
 	ts = time.time()
 	st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
@@ -94,13 +94,14 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 	r = numpy.array(r)
 
 	# grams
-	cellMass = sp["cell_mass"]# * Msun #yt now loads in g not Msolar
-	cellMass = numpy.array(cellMass)
+	cellMass = numpy.array(sp["cell_mass"])# yt now loads in g not Msolar
+#	cellMass = sp["cell_mass"]
+#	cellMass = numpy.array(cellMass)
 	# cgs
 	dens = sp["Density"].in_cgs()#yt loads in code density
 	dens = numpy.array(dens)
 	# cm**3
-	cellVolume = sp["cell_volume"].in_cgs()# Otherwise yt loads in code density
+	cellVolume = sp["cell_volume"].in_cgs()
 	cellVolume = numpy.array(cellVolume)
 	# These are in cm/s
 	#vx = sp["x-velocity"]
@@ -542,7 +543,7 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 		menc[shell] = mbin[shell] + menc[shell-1]
 	mTbin = menc
 	# mTbin is in grams
-	mTbin = mTbin + particleMass * Msun # Particle Mass was in solar masses
+	mTbin = mTbin + ParticleMass * Msun # Particle Mass was in solar masses
 	# calculated rbin in the ang momentum section
 	# and converted from being in parsecs
 	#lgrbin = lgradiusMin + (lgradiusSph-lgradiusMin)*numpy.arange(bins)/bins
@@ -554,11 +555,11 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 	sum_velocities = numpy.sqrt(vphi_magbin**2 + vrbin**2 + vrmsbin**2)
 	
 	# Include the particle mass
-	particle_mass = numpy.full((bins), particleMass)
+	Particle_mass = numpy.full((bins), ParticleMass)
 	creation_time = numpy.full((bins), this_creation_time)
 	current_time = numpy.full((bins), current_time)
 
-	numpy.savetxt(fileout, zip(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, rhobin, mdotbin, norm, angXbin, angYbin, angZbin, vphi_magbin, sum_velocities, particle_mass, creation_time, current_time, vrms_r_bin, vrms_l_bin, vrms_theta_bin, vrms_phi_bin), fmt="%15.9E")
+	numpy.savetxt(fileout, zip(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, rhobin, mdotbin, norm, angXbin, angYbin, angZbin, vphi_magbin, sum_velocities, Particle_mass, creation_time, current_time, vrms_r_bin, vrms_l_bin, vrms_theta_bin, vrms_phi_bin), fmt="%15.9E")
 
 ################################################
 ################################################
@@ -753,7 +754,7 @@ def FLASH_file_existance_chk(file_value):
 		return True
 
 def FLASH_additional_stuff():
-	#fileout="{0}_{1}_{2:04d}_{3}_{4}.out".format( out_prefix, quad, int(file_number), compare_file, int(ParticleID))
+	#fileout="{0}_{1}_{2:04d}_{3}_{4}.out".format( out_prefix, quad, int(File_number), compare_file, int(ParticleID))
 	if (withMaxDensity):
 		# Use this for before star particle formation.
 				#pf = yt.load("{0}{1:04d}".format( plt_prefix, i))
@@ -770,12 +771,12 @@ def FLASH_additional_stuff():
 #			current_time = pf.current_time
 #			ParticleID = int(42)
 #			this_creation_time = 0.0
-#			particle_age = 0.0
-#			this_particle_Mass = 0.0
+#			Particle_age = 0.0
+#			this_Particle_Mass = 0.0
 #			print 'Passing to the analysis script'
 #			pass_to_analysis_script(pf, xc, yc, zc, ParticleID, this_creation_time, 
-#						current_time, radiusMin, radiusSphere, particleMass, 
-#						file_number, sinkfile, file)
+#						current_time, radiusMin, radiusSphere, ParticleMass, 
+#						File_number, sinkfile, file)
 
 
 def FLASH_load_particle_info(plt_file):
@@ -793,20 +794,21 @@ def FLASH_load_particle_info(plt_file):
 	current_time = pf.current_time
 	particle_ID_list = dd["particle_index"]
 
-def FLASH_obtain_individual_part_attributes(part_lst_num, file_number, pf, particle_ID_list, xp, yp, zp, vxp, vyp, vzp, partMass, creation_time, current_time):
+def FLASH_obtain_individual_part_attributes(part_lst_num, File_number, pf, Particle_ID_list, xp, yp, zp, vxp, vyp, vzp, partMass, creation_time, current_time):
 	xc = xp[part_lst_num]	 
 	yc = yp[part_lst_num]	 
 	zc = zp[part_lst_num]
 	vxc = vxp[part_lst_num]
 	vyc = vyp[part_lst_num]
 	vzc = vzp[part_lst_num]
-	ParticleID = particle_ID_list[part_lst_num]
-	particleMass = partMass[part_lst_num]
+	ParticleID = Particle_ID_list[part_lst_num]
+	ParticleMass = partMass[part_lst_num]
 	#print ParticleID
 	this_creation_time = creation_time[part_lst_num]
-	particle_age = current_time - this_creation_time
-	particle_age = particle_age / (numpy.pi*1e7)
-	return xc, yc, zc, vxc, vyc, vzc, ParticleID, this_creation_time, particleMass
+	Particle_age = current_time - this_creation_time
+	Particle_age = Particle_age / (numpy.pi*1e7)
+	return xc, yc, zc, vxc, vyc, vzc, ParticleID, this_creation_time, ParticleMass
+
 #############################################
 #############################################
 #############################################
@@ -815,7 +817,7 @@ def FLASH_obtain_individual_part_attributes(part_lst_num, file_number, pf, parti
 
 
 def print_to_text_file(txt_filename, File_number, ParticleID, xc, yc, zc, creation_time, current_time, ParticleMass):
-	# Fill with the new values for this particle and timestep.
+	# Fill with the new values for this Particle and timestep.
 	File_number = numpy.full((1), File_number)
 	ParticleID = numpy.full((1), ParticleID)
 	ParticleMass = numpy.full((1), ParticleMass)
@@ -824,49 +826,34 @@ def print_to_text_file(txt_filename, File_number, ParticleID, xc, yc, zc, creati
 	zc = numpy.full((1), zc)
 	creation_time = numpy.full((1), creation_time)
 	current_time = numpy.full((1), current_time)
-	with open(txt_filename, "a") as particle_location:
-		numpy.savetxt(particle_location, zip(File_number, ParticleID, ParticleMass, xc, yc, zc, creation_time, current_time))
+	with open(txt_filename, "a") as Particle_location:
+		numpy.savetxt(Particle_location, zip(File_number, ParticleID, ParticleMass, xc, yc, zc, creation_time, current_time))
 
-def standardize_file_number(input_file_number):
-	output_file_number = "%05d"%input_file_number
-	if len(output_file_number) >= 6:
+def standardize_File_number(input_File_number):
+	output_File_number = "%05d"%input_File_number
+	if len(output_File_number) >= 6:
 		print 'This system assumes less than one million output files.'
 		sys.exit()
-	return output_file_number
+	return output_File_number
 
-def RAMSES_obtain_individual_part_attributes(pf, index, particle_ID_list, partMass, xstar, ystar, zstar, vxstar, vystar, vzstar):
-	ParticleID = particle_ID_list[index]
-	particleMass = partMass[index]
+def RAMSES_obtain_individual_part_attributes(pf, index, Particle_ID_list, partMass, xstar, ystar, zstar, vxstar, vystar, vzstar):
+	ParticleID = Particle_ID_list[index]
+	ParticleMass = partMass[index]
 	xc = pf.quan(xstar[index], "cm")
 	yc = pf.quan(ystar[index], "cm")
 	zc = pf.quan(zstar[index], "cm")
 	vxc = vxstar[index]
 	vyc = vystar[index]
 	vzc = vzstar[index]
-	return ParticleID, particleMass, xc, yc, zc, vxc, vyc, vzc
+	return ParticleID, ParticleMass, xc, yc, zc, vxc, vyc, vzc
 
-def pass_to_analysis_script(pf, xc, yc, zc, ParticleID, creation_time, current_time, radiusMin, radiusSphere, ParticleMass, File_number, sinkfile, infofile):
-	#This is used when tracking backwards, should place it there.
-	txt_filename = '{0}/particle_{1}_location.txt'.format(output_location, ParticleID)
-	print_to_text_file(txt_filename, File_number, ParticleID, xc, yc, zc, creation_time, current_time, ParticleMass)
-	# Copy infofile and sinkfile to the output location, they are used in the plotting routine.
-	copyfile(infofile, '{0}/info_{1}.txt'.format(output_location, File_number))
-	copyfile(sinkfile, '{0}/sink_{1}.info'.format(output_location, File_number))
-	fileout="{0}/{1}_{2}_{3}_{4}.out".format(output_location, out_prefix, File_number, compare_file, int(ParticleID))
-	if ("particle" in compare_file) or ("bigsphere" in compare_file):
-		print "Using yt"
-		getRadialProfile_yt(pf,xc,yc,zc, vxc, vyc, vzc, fileout, radiusSphere, ParticleMass)
-	else:
-		print 'going to python script'
-		getRadialProfile_py(pf, xc, yc, zc, ParticleID, creation_time, current_time, fileout, radiusMin, radiusSphere, ParticleMass)
-
-def Obtain_Particles(num_var_packed, pf, sinkfile, file_number):#, xc, yc, zc):#, Init_Restart):
+def Obtain_Particles(num_var_packed, pf, sinkfile, File_number):#, xc, yc, zc):#, Init_Restart):
 	global Init_Restart
 	global xc_search
 	global yc_search
 	global zc_search
 	#Init for this particle & timestep
-	particle_ID_list = numpy.float64(0.0)
+	Particle_ID_list = numpy.float64(0.0)
 	partMass = 0.0
 	r_star = 0.0
 	poly_n = 0.0
@@ -879,7 +866,7 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, file_number):#, xc, yc, zc):#
 	vxstar = 0.0
 	vystar = 0.0
 	vzstar = 0.0
-	print 'obtaining particles', len( num_var_packed)
+#	print 'obtaining particles', len( num_var_packed)
 	if len( num_var_packed) == 0:
 		dd = pf.all_data()
 		if ( args.maxdensity):
@@ -890,22 +877,21 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, file_number):#, xc, yc, zc):#
 			max= dd.quantities["MaxLocation"]("Density")
 		elif ( args.backwards):
 			#This is the case if we are tracking a particle backwards
-			particle_ID_list = numpy.float64(withParticleIDValue)
-			print 'going back'
+			Particle_ID_list = numpy.float64(withParticleIDValue)
 			if ( withRestart and Init_Restart):
 				#Restarted the run, read from particle location file.
-				#ld_file_number, ld_PartID, ld_PartMass, ld_xc, ld_yc, ld_zc, ld_creation, ld_current
-				ld_file_number, ld_xc, ld_yc, ld_zc = numpy.loadtxt("{0}/particle_{1}_location.txt".format(output_location, args.ParticleID), usecols=[0,3,4,5], unpack=True)
-				for value in range(len(ld_file_number)):
-					ld_file = standardize_file_number(ld_file_number[value])
-					if ( ld_file == file_number):
-						print ld_file, file_number
+				#ld_File_number, ld_PartID, ld_PartMass, ld_xc, ld_yc, ld_zc, ld_creation, ld_current
+				ld_File_number, ld_xc, ld_yc, ld_zc = numpy.loadtxt("{0}/particle_{1}_location.txt".format(output_location, args.ParticleID), usecols=[0,3,4,5], unpack=True)
+				for value in range(len(ld_File_number)):
+					ld_file = standardize_File_number(ld_File_number[value])
+					if ( ld_file == File_number):
+						print ld_file, File_number
 						xc_search = ld_xc[value]
 						yc_search = ld_yc[value]
 						zc_search = ld_zc[value]
 						Init_Restart = False
 						break
-			print 'backwards search xc, yc, zc:', xc_search, yc_search, zc_search
+			print 'Backwards search location: xc, yc, zc:', xc_search, yc_search, zc_search
 			sp = pf.sphere(YTArray( [xc_search, yc_search, zc_search], "cm"), (0.5, 'pc'))
 			max = sp.quantities["MaxLocation"]("Density")
 		maxDens = pf.quan(max[0], "g*cm**(-3)")
@@ -913,28 +899,28 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, file_number):#, xc, yc, zc):#
 		xstar = max_Location[0]
 		ystar = max_Location[1]
 		zstar = max_Location[2]
-		print 'These are the Max Density coordinates: ',xstar, ystar, zstar
+		print 'These are the Max Density coordinates: ', xstar, ystar, zstar
 	elif len( num_var_packed) == 9: # The Nakano run.
-		particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
+		Particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
 		    vxstar, vystar, vzstar = numpy.loadtxt( sinkfile, unpack=True, skiprows=3, comments="=")
 	elif len( num_var_packed) == 12:# The Offner run, no tracking pjet. 
-		particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
+		Particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
 		    vxstar, vystar, vzstar, poly_n, md, polystate = numpy.loadtxt( sinkfile, unpack=True, skiprows=3, comments="=")
 	elif len( num_var_packed) == 13:# Offner with jet momentum.
-		particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
+		Particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
 		    vxstar, vystar, vzstar, poly_n, md, polystate, pjet = numpy.loadtxt( sinkfile, unpack=True, skiprows=3, comments="=")
 	else :
 		print "It appears that this file does not correspond to a Nakano run, or either version of the Offner runs."
 		print len(num_var_packed)
 		print num_var_packed
 		sys.exit()
-	return particle_ID_list, partMass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar, poly_n, md, polystate, pjet
+	return Particle_ID_list, partMass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar, poly_n, md, polystate, pjet
 
 ###########################################################
-########_____START_OF_Main_Particle_Reduction_____########
+########_____START_OF_Particle_Reduction_____########
 ###########################################################
 
-def Main_Particle_Reduction(index):
+def Particle_Reduction(index):
 	# First, check that the required files exist
 	#FLASH
 	if ( withFLASH4):
@@ -943,19 +929,22 @@ def Main_Particle_Reduction(index):
 		print 'On File: {0}{1:04d}'.format(plt_prefix, index)
 		# Flash Stuff Here
 		plt_file = '{0}{1:04d}'.format(plt_prefix, index)
-		FLASH_load_particle_info(plt_file)
+		FLASH_load_Particle_info(plt_file)
+
 	else:
 		#RAMSES
-		print 'On Folder: output_{0:05d}'.format(index)
-
+		print 'On Folder: ' + cwd + '/output_{0:05d}'.format(index)
 		# Create the 5 digit file number so that we can reference it for plotting
-		file_number = standardize_file_number(index)
-		infofile = prefix + "{0}/info_{0}.txt".format(file_number)
-		sinkfile = prefix + "{0}/sink_{0}.info".format(file_number)
+		File_number = standardize_File_number(index)
+		infofile = prefix + "{0}/info_{0}.txt".format(File_number)
+		sinkfile = prefix + "{0}/sink_{0}.info".format(File_number)
 		if( not os.path.isfile( sinkfile)) or ( not os.path.isfile( infofile)):
 			print "Either the sink or info file is missing."
 			return
 
+		# Copy infofile and sinkfile to the output location, they are used in the plotting routine.
+		copyfile(infofile, '{0}/info_{1}.txt'.format(output_location, File_number))
+		copyfile(sinkfile, '{0}/sink_{1}.info'.format(output_location, File_number))
 		#The files exist, time to load up the information
 		pf = yt.load(infofile)
 		num_var_packed = numpy.loadtxt( sinkfile, unpack=True, skiprows=3, comments="=")
@@ -970,41 +959,41 @@ def Main_Particle_Reduction(index):
 			else:
 				Particle_existance = False
 		# The current total possible options to be packed in these ramses pieces thus far.
-		particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
-		    vxstar, vystar, vzstar, poly_n, md, polystate, pjet = Obtain_Particles(num_var_packed, pf, sinkfile, file_number)
+		Particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
+		    vxstar, vystar, vzstar, poly_n, md, polystate, pjet = Obtain_Particles(num_var_packed, pf, sinkfile, File_number)
 
 		# Now that we've loaded the relevant data, pull out what we require.
 		#Creation time is available in FLASH, not implemented yet for the RAMSES data.
-		this_creation_time = 0.0
+		creation_time = 0.0
 		current_time = pf.current_time
-		particle_age = 0.0 # current_time - this_creation_time
+		Particle_age = 0.0 # current_time - this_creation_time
 
 		# Now that we have all the information associated with all particles in this timestep,
 		# How are we requested to loop through?
 		if xstar.size == 1:# If there are zero particles, or one, both trigger here.
-			particle_list = 1
+			Particle_list = 1
 		elif xstar.size >= 2:
 			half_point = xstar.size/2
 			if ( args.first) or ( args.second):
 				print 'will only do half of the list of particles.'
-				particle_list = xstar.size/2 + 1
+				Particle_list = xstar.size/2 + 1
 			elif ( withParallel):
 				#TO DO Figure out how this works and make it work.
 				print 'Running the script in parallel.'
 				parallel_size = int(math.ceil(1.0 * xstar.size/size)) 
-				particle_list = parallel_size - rank
+				Particle_list = parallel_size - rank
 				#for j in range(rank, parallel_size, size):
 				#	print 'On particle:', j + 1, 'of:', xstar.size, ' in File: {0}{1:04d}'.format(plt_prefix, index)
 				#	if j  >= xstar.size:
 				#		break
 			else: # Do all on this cpu
-				particle_list = xstar.size
-		for j in range(particle_list):
+				Particle_list = xstar.size
+		for j in range(Particle_list):
 			if xstar.size == 1:
-				if particle_ID_list == args.ParticleID or (withAllParticles):
+				if Particle_ID_list == args.ParticleID or (withAllParticles):
 					# This converts to the proper data types needed.
-					ParticleID = int(particle_ID_list)
-					particleMass = partMass
+					ParticleID = int(Particle_ID_list)
+					ParticleMass = partMass
 					xc = pf.quan(xstar, "cm")
 					yc = pf.quan(ystar, "cm")
 					zc = pf.quan(zstar, "cm")
@@ -1013,7 +1002,7 @@ def Main_Particle_Reduction(index):
 					vzc = vzstar
 				else:
 					print 'The ID of the only particle in this timestep does not match the requested ID.'
-					print 'PartID', str(int(particle_ID_list)) + ', ', 'Requested ID', args.ParticleID
+					print 'PartID', str(int(Particle_ID_list)) + ', ', 'Requested ID', args.ParticleID
 					continue
 			else:
 				#For all and args.first, we start at j = 0
@@ -1025,32 +1014,43 @@ def Main_Particle_Reduction(index):
 				if j + 1 > xstar.size:
 					# This would query past the end length of xstar.size.
 					break
-				if particle_ID_list[j] == withParticleIDValue or (withAllParticles):
-					ParticleID, particleMass, xc, yc, zc, vxc, vyc, vzc = \
-					    RAMSES_obtain_individual_part_attributes(pf, j, particle_ID_list, \
+				if Particle_ID_list[j] == withParticleIDValue or (withAllParticles):
+					ParticleID, ParticleMass, xc, yc, zc, vxc, vyc, vzc = \
+					    RAMSES_obtain_individual_part_attributes(pf, j, Particle_ID_list, \
 					    partMass, xstar, ystar, zstar, vxstar, vystar, vzstar)
 				else:
 					continue
-			#Finally, pass the appropriate data to the analysis script.
+
 			if ( args.backwards):
 				if ( ParticleID == args.ParticleID):
+					# Save the information for the current timestep and particle.
+					# If we need to restart when prior to the particles formation, this will allow us
+					# to jump to the location of its density peak.
+					txt_filename = '{0}/particle_{1}_location.txt'.format(output_location, int(ParticleID))
+					print_to_text_file(txt_filename, File_number, ParticleID, xc, yc, zc, creation_time, current_time, ParticleMass)
+					# If we are tracing backwards update the search coordinates
+					# To center on the particle's current location
 					global xc_search
 					global yc_search
 					global zc_search
-					# If we are tracing backwards update the search coordinates
-					# To center on the particle's current location
 					xc_search = xc
 					yc_search = yc
 					zc_search = zc
-			print 'center coords', xc, yc, zc
-			pass_to_analysis_script(pf, xc, yc, zc, ParticleID, this_creation_time, current_time, radiusMin, radiusSphere, particleMass, file_number, sinkfile, infofile)
-			if ( withFLASH4):
-				print 'Finished Analysing particle:', j + 1, 'of:', xstar.size, ' in File: {0}{1:04d}'.format(plt_prefix, index)
+			print 'Particle Coordinates', xc, yc, zc
+			fileout="{0}/{1}_{2}_{3}_{4}.out".format(output_location, out_prefix, File_number, compare_file, int(ParticleID))
+			# Finally, pass the appropriate data to the analysis script.
+			if ("particle" in compare_file) or ("bigsphere" in compare_file):
+				getRadialProfile_yt(pf,xc,yc,zc, vxc, vyc, vzc, fileout, radiusSphere, ParticleMass)
 			else:
-				print 'Finished Analysing particle:', j + 1, 'of:', xstar.size, ' in Folder: output_{0:05d}'.format(index)
-		return
+				getRadialProfile_py(pf, xc, yc, zc, ParticleID, creation_time, current_time, fileout, radiusMin, radiusSphere, ParticleMass)
+			if ( withFLASH4):
+				print 'Finished Analysing particle:', j + 1, 'of:', xstar.size, 'in File:', cwd, '/{0}{1:04d}'.format(plt_prefix, index)
+			else:
+				print 'Finished Analysing particle:', j + 1, 'of:', xstar.size, 'in Folder:', cwd, '/output_{0:05d}'.format(index)
+	# After looping through all particles in this time step.
+	return
 ###########################################################
-
+###########################################################
 ###########################################################
 import argparse
 parser = argparse.ArgumentParser(description = "start number to end number, stride length, reduction method")
@@ -1111,9 +1111,9 @@ bulk_vel_accepted_strings = {'shellsphere', 'bigsphere', 'smallsphere', 'particl
 # If they work with the penrose psuedo invert, I'd like to know
 global Penrose_matrix_particles
 Penrose_matrix_particles = []
-# The file looks like this:
+# The output file looks like this:
 #'{out_prefix}{framestep}_{compare_file}_{particle_number}.out'
-# i.e. rad_profile_0218_part_000.out   
+# i.e. rad_profile_0218_shellsphere_000.out   
 
 if (withParallel):
 	from mpi4py import MPI
@@ -1127,12 +1127,11 @@ if not (os.path.isdir(output_location)) :
 		os.mkdir(output_location)
 	except:
 		print "Do not have permission to create python_output folder in current working directory"
+		print cwd
 		sys.exit()
 
 if args.bulk_vel_method in bulk_vel_accepted_strings:
 	compare_file = args.bulk_vel_method
-	print type(compare_file)
-	print compare_file
 	if ("shellsphere" == compare_file):
 		Bulk_by_Sphere_in_Shell = True
 	# These are modifications from the default shellsphere settings.
@@ -1149,8 +1148,9 @@ else:
 	print "Possible methods include: ", bulk_vel_accepted_strings
 	sys.exit()
 
-# These are universal for FLASH
+
 if ( withFLASH4):
+	# If we wish to use the checkpoint files, rather than the output files.
 	if ( withCheckpoint):
 		plt_prefix = "BB_hdf5_chk_"
 		part_prefix = "BB_hdf5_part_"
@@ -1158,7 +1158,9 @@ if ( withFLASH4):
 		plt_prefix = "BB_hdf5_plt_cnt_"
 		part_prefix = "BB_hdf5_part_"
 
-
+##########################################
+############## Main Program ##############
+##########################################
 if (withTrackBackwards):
 	#This is to pass xc, yc, zc back and forth with obtain particle
 	#In case we wish to track a particle backwards in time, it is useful
@@ -1175,11 +1177,11 @@ if (withTrackBackwards):
 		Init_Restart = True
 	for i in range(args.end-1, args.start-1, -args.step) :
 		print 'looping'
-		Main_Particle_Reduction(i)
+		Particle_Reduction(i)
 		print "finished reduction on ", i
 else: #Step forward in time and reduce particles
 	for i in range(args.start,args.end,args.step) :	
-		Main_Particle_Reduction(i)
+		Particle_Reduction(i)
 
 print 'These particles needed a pseudo-inversion, not sure if you should trust them'
 print Penrose_matrix_particles
