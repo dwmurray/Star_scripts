@@ -404,7 +404,7 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 			print "Linear algebra error, can't invert this matrix."
 			print "Will try using Penrose-Moore psuedo-inverse to find a 'best' solution,"
 			print "But you should probably avoid this particle"
-			Penrose_matrix_particles = Penrose_matrix_particles.append(ParticleID)
+			Penrose_matrix_Particles = Penrose_matrix_Particles.append(ParticleID)
 			try:
 				I_invert_matrix = numpy.linalg.pinv(I_matrixbin)
 			except numpy.linalg.LinAlgError:#numpy.linalg.linalg.LinAlgError:
@@ -1109,8 +1109,9 @@ bulk_vel_accepted_strings = {'shellsphere', 'bigsphere', 'smallsphere', 'particl
 # This list is for any I matricies that are singular,
 # or have issues with numpy.linalg.inv
 # If they work with the penrose psuedo invert, I'd like to know
-global Penrose_matrix_particles
-Penrose_matrix_particles = []
+global Penrose_matrix_Particles
+Penrose_matrix_Particles = []
+
 # The output file looks like this:
 #'{out_prefix}{framestep}_{compare_file}_{particle_number}.out'
 # i.e. rad_profile_0218_shellsphere_000.out   
