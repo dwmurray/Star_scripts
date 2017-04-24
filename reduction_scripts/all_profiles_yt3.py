@@ -404,7 +404,7 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 			print "Linear algebra error, can't invert this matrix."
 			print "Will try using Penrose-Moore psuedo-inverse to find a 'best' solution,"
 			print "But you should probably avoid this particle"
-			Penrose_matrix_Particles = Penrose_matrix_Particles.append(ParticleID)
+#			Penrose_matrix_Particles = Penrose_matrix_Particles.append(ParticleID)
 			try:
 				I_invert_matrix = numpy.linalg.pinv(I_matrixbin)
 			except numpy.linalg.LinAlgError:#numpy.linalg.linalg.LinAlgError:
