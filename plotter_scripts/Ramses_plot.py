@@ -18,7 +18,7 @@ from matplotlib import rcParams
 matplotlib.use("Agg")
 warnings.filterwarnings('error','loadtxt: Empty input file:')
 
-def setup_plot_window():
+def Setup_plot_window():
 	global Init_matplotParams
 	if Init_matplotParams == False:
 		plt.rc("text", usetex=True)
@@ -53,18 +53,11 @@ def setup_plot_window():
 	plt.minorticks_on()
 	plt.tick_params('both',length=8, width=1, which='minor')
 	plt.tick_params('both',length=10, width=1.5, which='major')
-	plt.gcf().subplots_adjust(bottom=0.15)
+#	plt.gcf().subplots_adjust(bottom=0.15)
+	plt.tight_layout()
 
-def velocity_plot(rbin, vrbin, vrmsbin, vmagbin, vKbin, vphi_magbin, sum_velocities):
-	index_vk_min=vKbin.argmin()
-	index_turb_min=vrmsbin[20:65].argmin() + 20
-	MC15_velocity = np.sqrt(vrmsbin*vrmsbin + vphi_magbin*vphi_magbin)
-	# use this to figure out what % of vkep vr infall is.
-	vr_vk_ratio = abs(vrbin / vKbin)
-	print vr_vk_ratio
-	print 'Minimum % vr is of vk: ', vr_vk_ratio.min()
 
-	# Now plot
+def Velocity_plot(rbin, vrbin, vrmsbin, vmagbin, vKbin, vphi_magbin, sum_velocities, MC15_velocity):
 	plt.loglog( rbin, -vrbin/1e5, 'bv-', label='$u_r$')
 	plt.loglog( rbin, vrmsbin/1e5, 'g.-', label='$v_T$')  
 	#plt.loglog( rbin, vmagbin/1e5, 'm.', label='$v_{Total}$')  
@@ -78,17 +71,12 @@ def velocity_plot(rbin, vrbin, vrmsbin, vmagbin, vKbin, vphi_magbin, sum_velocit
 #	print power_law_fit
 #	sys.exit()
 	plt.axhline( c_s/1e5, color = 'black',label='$c_s$')  
-	plt.ylim(5e-2, 3e1)
+	plt.ylim(5e-3, 3e1)
 	plt.xlim(3e-3, 3e0)
 	plt.ylabel(r'$u_r, \, v_T, \, v_K, \, v_\phi, \, c_s$ $({\rm km\, s}^{-1})$', fontsize = 25)
 	plt.xlabel(r'$r$ $({\rm pc})$', fontsize=25)
 
 def Turbulent_velocity_plot(rbin, vrmsbin, vrms_r_bin, vrms_l_bin):
-
-	#vrms_subtract_bin = vrmsbin - vrms_r_bin
-	#vrms_total = np.sqrt(vrms_r_bin**2 + vrms_l_bin**2)
-	#vrms_total = vrms_r_bin + vrms_l_bin
-	# Now plot
 	plt.loglog( rbin, vrmsbin/1e5, 'go-', label='$v_T$', lw = 1)  
 	plt.loglog( rbin, vrms_r_bin/1e5, '-', color='blue', label='$v_{T,r}$')  
 	plt.loglog( rbin, vrms_l_bin/1e5, 'r--', label='$v_{T,l}$', lw = 2)  
@@ -99,7 +87,7 @@ def Turbulent_velocity_plot(rbin, vrmsbin, vrms_r_bin, vrms_l_bin):
 	plt.ylabel(' $v_T, \\, v_{T,r}, \\, v_{T,l}$ $({\\rm km\\, s}^{-1})$', fontsize=25)
 	plt.xlabel('$r$ $(\\rm pc)$', fontsize=25)
 	
-def density_plot(rbin, rhobin):
+def Density_plot(rbin, rhobin):
 	host = host_subplot(111, axes_class=AA.Axes)
 	par1 = host.twinx()
 	Ndensity_Y_min = 1e1
@@ -127,15 +115,14 @@ def density_plot(rbin, rhobin):
 	#host.axis["left"].label.set_color(p1.get_color())
 	#par1.axis["right"].label.set_color(p2.get_color())
 	
-def ang_moment_plot(rbin, vphi_magbin):
-	plt.clf()
+def Ang_moment_plot(rbin, vphi_magbin):
 	#plt.loglog( rbin, (rbin*parsec)*vphi_magbin/np.sqrt(G*mTbin*(parsec*rbin)))
 	plt.loglog( rbin, (rbin*parsec)*vphi_magbin)
 	plt.xlim(3e-3, 3e0)
 	plt.ylabel('Specific Ang momentum', fontsize=25)
 	plt.xlabel('$r$ $({\\rm pc})$', fontsize=25)
 
-def total_mass_plot(rbin, mTbin):
+def Total_mass_plot(rbin, mTbin):
 	plt.loglog( rbin, mTbin)
 	#plt.axhline(chosen_ratio_number*particleMass, color = 'g')
 	plt.ylim(1e32, 1e37)
@@ -143,22 +130,21 @@ def total_mass_plot(rbin, mTbin):
 	plt.ylabel(r'$M$ $({\rm g})$', fontsize=25)
 	plt.xlabel(r'$r$ $({\rm pc})$', fontsize=25)
 	
-def Mdot_plot(rbin, vrbin, rhobin, mdotbin):
-	plt.loglog( rbin, -4.0*pi*rhobin*vrbin*(parsec*rbin)**2*yr/Msun) 
+def Mdot_plot(rbin, py_mdot, mdotbin):
+#	plt.loglog( rbin, -4.0*pi*rhobin*vrbin*(parsec*rbin)**2*yr/Msun) 
+	plt.loglog( rbin, py_mdot) 
 	plt.loglog( rbin, mdotbin) 
 	plt.xlim(3e-3, 3e0)
 	plt.ylim(1e-6, 1e-2)
 	plt.ylabel(r'$\dot{M}$ $({\rm M_{\odot}\, yr}^{-1})$', fontsize=25)
 	plt.xlabel(r'$r$ $({\rm pc})$', fontsize=28)
 
-def velocity_vs_density_plot(rhobin, vrbin, vrmsbin, vKbin, vphi_magbin, particleMass):
-	murray_chang_velocity = np.sqrt(vphi_magbin*vphi_magbin + vrmsbin*vrmsbin)
-
-	#plt.loglog( rhobin/mp, -vrbin/1e5, 'bv-', label='$v_r$')
-	plt.loglog( rhobin/mp, vrmsbin/1e5, 'g.-', label= '$v_T$')#  r'\textbf{time} (s)'
-	#plt.loglog( rhobin/mp, vKbin/1e5, 'r--', label='v_{Kep}')  
+def Velocity_vs_Density_plot(rhobin, vrbin, vrmsbin, vKbin, vphi_magbin, particleMass, MC15_velocity):
+	plt.loglog( rhobin/mp, vrmsbin/1e5, 'g.-', label= '$v_T$')
 	plt.loglog( rhobin/mp, vphi_magbin/1e5, 'k+', label='$v_\phi$')
-	plt.loglog( rhobin/mp, murray_chang_velocity/1e5,'.-.', color='orange', label='$\sqrt{v_T^2 + v_\phi^2}$')
+	plt.loglog( rhobin/mp, MC15_velocity/1e5,'.-.', color='orange', label='$\sqrt{v_T^2 + v_\phi^2}$')
+	#plt.loglog( rhobin/mp, -vrbin/1e5, 'bv-', label='$v_r$')
+	#plt.loglog( rhobin/mp, vKbin/1e5, 'r--', label='v_{Kep}')  
 	#plt.loglog( rhobin/mp, sum_of_velocities/1e5, 'c', label='Sum Velocity')
 	plt.annotate('M* = ' + "%.2f"% float(particleMass/Msun) + 'Msun', xy=(1e7, 1e-1), xytext=(1e6, 1e-1))
 	plt.xlim(1e4, 1e7)
@@ -179,53 +165,11 @@ def Toomre_Q(rbin, rhobin, vrmsbin, vphi_magbin):#rbin, rhobin, vrbin, vrmsbin, 
 	plt.ylabel(r'$Q$', fontsize=25)
 	plt.xlabel(r'$r$ $({\rm pc})$', fontsize=25)
 
-def Pressure_Gravity_ratio(rbin, rhobin, vrmsbin, vphi_magbin):#rbin, rhobin, vrmsbin, mTbin):
-#	global Big_sum
-#	global Call_count
-	dr =  np.zeros(len(rbin))
-	Gravity_bin =  np.zeros(len(rbin))
-	P_thermal_bin =  np.zeros(len(rbin))
-	P_turbulent_bin =  np.zeros(len(rbin))
-	P_rotational_bin =  np.zeros(len(rbin))
-
-	dP_thermal =  np.zeros(len(rbin))
-	dP_turbulent =  np.zeros(len(rbin))
-	dP_rotational =  np.zeros(len(rbin))
-	Thermal_ratio =  np.zeros(len(rbin))
-	Turbulent_ratio =  np.zeros(len(rbin))
-	Rotational_ratio =  np.zeros(len(rbin))
-
-	#Set rbin to be in cm
-	rbin_cgs = rbin * parsec
-	
-	P_thermal_bin = rhobin * c_s*c_s
-	P_turbulent_bin = rhobin * vrmsbin*vrmsbin
-	P_rotational_bin = rhobin * vphi_magbin*vphi_magbin
-#	print 'Creates P_thermal'
-
-	dP_thermal[1:-1] = P_thermal_bin[2:] - P_thermal_bin[:-2]
-	dP_turbulent[1:-1] = P_turbulent_bin[2:] - P_turbulent_bin[:-2]
-	dP_rotational[1:-1] = P_rotational_bin[2:] - P_rotational_bin[:-2]
-	dr[1:-1] = rbin_cgs[2:] - rbin_cgs[:-2]
-	Gravity_bin = G * mTbin / (rbin_cgs*rbin_cgs)
-	
-	Thermal_numerator = dP_thermal / (dr*rhobin)
-	Turbulent_numerator = dP_turbulent / (dr*rhobin)
-	rotational_numerator = dP_rotational / (dr*rhobin)
-
-	Thermal_ratio = -Thermal_numerator / Gravity_bin
-	Turbulent_ratio = -Turbulent_numerator / Gravity_bin
-	Rotational_ratio = -rotational_numerator / Gravity_bin
-	Sum_of_ratios = Thermal_ratio + Turbulent_ratio
-
-#	Big_sum = Big_sum + Sum_of_ratios
-#	print Big_sum
-#	Call_count = Call_count + 1
-
-	#plt.loglog(rbin, Thermal_ratio, color = 'black')
-	#plt.loglog(rbin, Turbulent_ratio, color = 'r')
-	plt.loglog(rbin, Rotational_ratio, '--', color = 'blue', label = '$P_{v_\phi}$')
-	#plt.loglog(rbin, Big_sum/Call_count, color = 'r', label = Call_count)
+def Pressure_Gravity_ratio(rbin, rhobin, vrmsbin, vphi_magbin, Thermal_P_ratio, Turb_P_ratio, Rot_P_ratio):
+	Sum_of_ratios = Thermal_P_ratio + Turb_P_ratio
+	#plt.loglog(rbin, Thermal_P_ratio, color = 'black')
+	#plt.loglog(rbin, Turb_P_ratio, color = 'r')
+	plt.loglog(rbin, Rot_P_ratio, '--', color = 'blue', label = '$P_{v_\phi}$')
 	plt.loglog(rbin, Sum_of_ratios, '-', color = 'g', label = '$P_{c_s}$ + $P_T$')
 	plt.legend(loc=0, fontsize='22', frameon=False)
 	plt.axhline(1.0, color='black')
@@ -237,39 +181,58 @@ def Pressure_Gravity_ratio(rbin, rhobin, vrmsbin, vphi_magbin):#rbin, rhobin, vr
 def png_save(fileout):
 	print 'saving file: ', fileout
 	plt.savefig(fileout)
-#
-#def disperse_2_plotters(framestep, particle_ID, output_format):
-#	for i in range(len(plotting_list)):
-#		print plotting_list[i]
-#		setup_plot_window()
-#		fileout = "{0}_ID{1}_{2}_{3}.{4}".format(plotting_list[i], particle_ID, compare_file, framestep, output_format)
-#		if 'velocity' == plotting_list[i] :
-#			velocity_plot(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, vphi_magbin)
-#		elif 'turbulent' == plotting_list[i] :
-#			Turbulent_velocity_plot(rbin, vrmsbin, vrms_r_bin, vrms_l_bin)
-#		elif 'toomreQ' == plotting_list[i] :
-#			Toomre_Q(rbin, rhobin, vrbin, vrmsbin, vphi_magbin)				
-#		elif 'veldens' == plotting_list[i] :
-#			velocity_vs_density_plot(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, vphi_magbin, rhobin)
-#		elif 'density' == plotting_list[i] :
-#			density_plot(rbin, mTbin, rhobin)
-#		elif 'angmomentum' == plotting_list[i] :
-#			ang_moment_plot(rbin, mTbin, vphi_magbin)
-#		elif 'pressure' == plotting_list[i] :
-#			Pressure_Gravity_ratio(rbin, rhobin, vrmsbin, mTbin)
-#		elif 'mass' == plotting_list[i] :
-#			total_mass_plot(rbin, mTbin)
-#		elif 'mdot' == plotting_list[i] :
-#			Mdot_plot(rbin, vrbin, rhobin, mdotbin)
-#		png_save(fileout)
-#
-#################################
-#################################
-#################################
-#################################
 
+#################################
+#################################
+#################################
+#################################
+def Pressure_calculation():
+	bins = len(rbin)
 
-def find_r_star(rbin, mTbin, particleMass):
+	P_thermal =  np.zeros(bins)
+	P_turbulent =  np.zeros(bins)
+	P_rotational =  np.zeros(bins)
+	Gravity =  np.zeros(bins)
+
+	dr =  np.zeros(bins)
+	dP_thermal =  np.zeros(bins)
+	dP_turbulent =  np.zeros(bins)
+	dP_rotational =  np.zeros(bins)
+
+	Thermal_P_ratio =  np.zeros(bins)
+	Turb_P_ratio =  np.zeros(bins)
+	Rot_P_ratio =  np.zeros(bins)
+	#Set rbin to be in cm
+	rbin_cgs = rbin * parsec
+
+	P_thermal = rhobin * c_s*c_s
+	P_turbulent = rhobin * vrmsbin*vrmsbin
+	P_rotational = rhobin * vphi_magbin*vphi_magbin
+	Gravity = G * mTbin / (rbin_cgs*rbin_cgs)
+
+	dr[1:-1] = rbin_cgs[2:] - rbin_cgs[:-2]
+	dP_thermal[1:-1] = P_thermal[2:] - P_thermal[:-2]
+	dP_turbulent[1:-1] = P_turbulent[2:] - P_turbulent[:-2]
+	dP_rotational[1:-1] = P_rotational[2:] - P_rotational[:-2]
+
+	Thermal_P_ratio = -dP_thermal / dr / rhobin / Gravity
+	Turb_P_ratio = -dP_turbulent / dr / rhobin / Gravity
+	Rot_P_ratio = -dP_rotational / dr / rhobin / Gravity
+#	Sum_of_ratios = Thermal_P_ratio + Turb_P_ratio
+
+	return Thermal_P_ratio, Turb_P_ratio, Rot_P_ratio
+
+def Additional_Calculations():
+	# use this to figure out what % of vkep vr infall is.
+	vr_vk_ratio = abs(np.nan_to_num(vrbin) / np.nan_to_num(vKbin))
+#	print vr_vk_ratio
+#	print 'Minimum % vr is of vk: ', vr_vk_ratio.min()
+	# velocity and Veldens use this.
+	MC15_velocity = np.sqrt(vrmsbin*vrmsbin + vphi_magbin*vphi_magbin)
+	py_mdot = -4.0*pi*rhobin*vrbin*(parsec*rbin)**2*yr/Msun
+	return MC15_velocity, py_mdot
+
+def Find_r_star(rbin, mTbin, particleMass):
 ##Find r_*. Since r is ordered, I can use bisect to locate the index 
 #	where m_t= 2 m_*
 #	index_r_star = bisect.bisect_left(mass, 1.95 * mass[0])
@@ -344,7 +307,7 @@ def find_r_star(rbin, mTbin, particleMass):
 #	return r_star
 #
 
-def density_derivative_profile(rbin, rhobin):
+def Density_derivative_profile(rbin, rhobin):
 	# Find disk radius by derivative of density
 	global disk_radius_index
 	disk_radius_index = 0
@@ -379,7 +342,7 @@ def density_derivative_profile(rbin, rhobin):
 	if outside_radius_set == False:
 		print 'No disk'
 
-def disk_radius_by_vphi(rbin, vrbin, vrmsbin, vphi_magbin):
+def Disk_radius_by_vphi(rbin, vrbin, vrmsbin, vphi_magbin):
 	global disk_radius_index
 	boolean_r_mask = vphi_magbin > 0.99*vrbin
 	boolean_t_mask = vphi_magbin > 0.99*vrmsbin
@@ -403,13 +366,7 @@ def disk_radius_by_vphi(rbin, vrbin, vrmsbin, vphi_magbin):
 
 	print 'This is rbin[disk_radius_index] in pcs', rbin[disk_radius_index]
 
-#def naming_convention(quad_number, particle_number):
-#	#global particle_name
-#	particle_name = 'Q' + str(quad_number) + '_' + str(particle_number)
-#	print particle_name
-#	return particle_name
-
-def least_squares_fitting(log_x_sorted, log_y_sorted):
+def Least_squares_fitting(log_x_sorted, log_y_sorted):
 
 	#A = n.vstack([l_Mass_total_sort, n.ones(len(l_Mass_total_sort))]).T
 	#m, c = n.linalg.lstsq(A, l_L_to_M_sort)[0]
@@ -427,6 +384,14 @@ def standardize_File_number(input_File_number):
 		sys.exit()
 	return output_File_number
 
+
+def obtain_avg_value(tot_bin, particle_count, quantity_to_avg_bin):
+	#We count up particles outside this func now.
+#	particle_count = particle_count + 1
+	tot_bin = tot_bin + quantity_to_avg_bin
+	return tot_bin, tot_bin/particle_count
+
+
 ############################################
 ############################################
 ############################################
@@ -439,9 +404,12 @@ parser.add_argument('ParticleID', metavar='N4', type=int, nargs='?', default=0,
 		    help='Particle ID you want to reduce, use 0 for no particle density peak.')
 parser.add_argument('bulk_vel_method', metavar='N5', type=str, nargs='?', default='shellsphere',
 		    help='method of removing the bulk motion of the gas. Options are: shellsphere, bigsphere, smallsphere, particle, shell.')
+parser.add_argument('center_mass_4avg', metavar='N6', type=int, nargs='?', default=1,
+		    help='Mass you want to average around, in solar masses. Default is 1.')
 
 parser.add_argument('--noparticle', action='store_true')
 parser.add_argument('--allparticles', action='store_true')
+parser.add_argument('--avg', action='store_true')
 #What do you want to plot?
 parser.add_argument('--allplots', action='store_true')
 parser.add_argument('--velocity', action='store_true')
@@ -462,6 +430,8 @@ global Init_matplotParams
 Init_matplotParams = False
 file_prefix = 'rad_profile'
 
+center_mass_4_avg = args.center_mass_4avg
+
 mp = 1.6e-24
 pi = np.pi
 parsec = 3e18
@@ -473,7 +443,7 @@ c_s = 2.64e4
 # This has to do with calculating the sphere of influence
 gas_to_particle_ratio = 3.0
 plotting_list = []
-accepted_plotting_list = ['velocity', 'turbulent', 'toomreQ' 'veldens', 'density', 'angmomentum', 'pressure', 'mass', 'mdot']
+accepted_plotting_list = ['velocity', 'turbulent', 'toomreQ', 'veldens', 'density', 'angmomentum', 'pressure', 'mass', 'mdot']
 if args.allplots:
 	plotting_list = accepted_plotting_list
 else:
@@ -514,6 +484,11 @@ if (args.pdf):
 else:
 	output_format = 'png'
 
+if (args.avg):
+	tot_vr = 0
+	tot_vrms = 0
+	tot_density = 0
+	tot_mdot = 0
 
 # The file looks like this:
 #'{file_prefix}{framestep}_{compare_file}_{particle_number}.out'
@@ -536,6 +511,7 @@ for timestep in range(args.start,args.end,args.step) :
 			particle_list = np.array([int(args.ParticleID)])
 		else :
 			print 'The sinkfile is empty and you have not requested to plot max density location.'
+			print "If you want to, use the flag --noparticle."
 			continue #return
 	if particle_list.size == 1:
 		particle_list  = np.array([particle_list])
@@ -577,11 +553,11 @@ for timestep in range(args.start,args.end,args.step) :
 		# Calculate the derivative of the density
 		# And calculate the disk radius
 		# Old method of finding disk radius
-		#density_derivative_profile(rbin, rhobin)
+		#Density_derivative_profile(rbin, rhobin)
 		#diskMass = mTbin[disk_radius_index] - particleMass
 		#print 'Disk Mass is: ', diskMass, 'g or ', diskMass/Msun, 'M_sun'
 		# New Method of finding disk radius.
-		disk_radius_by_vphi(rbin, vrbin, vrmsbin, vphi_magbin)
+		Disk_radius_by_vphi(rbin, vrbin, vrmsbin, vphi_magbin)
 		diskMass = mTbin[disk_radius_index] - particleMass
 		print 'Disk Mass is: ', diskMass, 'g or ', diskMass/Msun, 'M_sun'
 		print 'Star particle Mass is: ', particleMass, 'g or ', particleMass/Msun, 'M_sun'
@@ -590,29 +566,75 @@ for timestep in range(args.start,args.end,args.step) :
 		except ValueError:
 			print 'No stellar mass so dividing by zero'
 		disk_particle_mass = particleMass + diskMass
-		r_star = find_r_star(rbin, mTbin, particleMass)
+		r_star = Find_r_star(rbin, mTbin, particleMass)
 		print 'R_* is: ', r_star, 'pcs or ', r_star * parsec, 'cms'
+		MC15_velocity, py_mdot = Additional_Calculations()
+		Thermal_P_ratio, Turb_P_ratio, Rot_P_ratio = Pressure_calculation()
+		# If we're looking to get an average profile,
+		if (args.avg):
+#			if len(plotting_list) > 1:
+#				print "please avg over one quantity at a time for now."
+#				sys.exit()
+			particleMass_solar = particleMass/Msun
+			deltaMass = center_mass_4_avg * 0.5
+			if deltaMass > 1.0:
+				deltaMass = 1.0 # range should be no more than a solar mass
+			lower_bound = center_mass_4_avg - deltaMass
+			upper_bound = center_mass_4_avg + deltaMass
+			if lower_bound <= particleMass/Msun <= upper_bound:
+				print particleMass_solar
+#				print plotting_list
+#				sys.exit()
+				particle_count = 0
+				savefig = False
+				for i in range(len(plotting_list)):
+					particle_count = particle_count + 1
+					Setup_plot_window()
+					fileout = "avg_{0}_{1}Msun_{2}_{3}.{4}".format(plotting_list[i], center_mass_4_avg, compare_file, timestep, output_format)
+					if 'velocity' == plotting_list[i] :
+						tot_vr, avg_vr = obtain_avg_value(tot_vr, particle_count, vrbin)
+						Velocity_plot(rbin, avg_vr, vrmsbin, vmagbin, vKbin, vphi_magbin, sum_velocities, MC15_velocity)
+						savefig = True
+					elif 'turbulent' == plotting_list[i] :
+						tot_vrms, avg_vrms = obtain_avg_value(tot_vrms, particle_count, vrmsbin)
+						Turbulent_velocity_plot(rbin, avg_vrms, vrms_r_bin, vrms_l_bin)
+						savefig = True
+					elif 'density' == plotting_list[i] :
+						tot_density, avg_density = obtain_avg_value(tot_density, particle_count, rhobin)
+						Density_plot(rbin, avg_density)
+						savefig = True
+					elif 'mdot' == plotting_list[i] :
+#						py_mdot = -4.0*pi*rhobin*vrbin*(parsec*rbin)**2*yr/Msun) 
+						tot_mdot, avg_mdot = obtain_avg_value(tot_mdot, particle_count, py_mdot)
+						Mdot_plot(rbin, avg_mdot, mdotbin)
+						savefig = True
+					if (savefig):
+						png_save(fileout)
+						savefig = False
+			continue
+
 		print 'Dispersing to plot.'
+		# For the particle and Timestep we are currently in, loop and do all requested plots.
 		for i in range(len(plotting_list)):
 			print plotting_list[i]
-			setup_plot_window()
+			Setup_plot_window()
 			fileout = "{0}_ID{1}_{2}_{3}.{4}".format(plotting_list[i], particle_ID, compare_file, timestep, output_format)
 			if 'velocity' == plotting_list[i] :
-				velocity_plot(rbin, vrbin, vrmsbin, vmagbin, vKbin, vphi_magbin, sum_velocities)
+				Velocity_plot(rbin, vrbin, vrmsbin, vmagbin, vKbin, vphi_magbin, sum_velocities, MC15_velocity)
 			elif 'turbulent' == plotting_list[i] :
 				Turbulent_velocity_plot(rbin, vrmsbin, vrms_r_bin, vrms_l_bin)
 			elif 'toomreQ' == plotting_list[i] :
 				Toomre_Q(rbin, rhobin, vrmsbin, vphi_magbin)
 			elif 'veldens' == plotting_list[i] :
-				velocity_vs_density_plot(rhobin, vrbin, vrmsbin, vKbin, vphi_magbin, particleMass)
+				Velocity_vs_Density_plot(rhobin, vrbin, vrmsbin, vKbin, vphi_magbin, particleMass, MC15_velocity)
 			elif 'density' == plotting_list[i] :
-				density_plot(rbin, rhobin)
+				Density_plot(rbin, rhobin)
 			elif 'angmomentum' == plotting_list[i] :
-				ang_moment_plot(rbin, vphi_magbin)
+				Ang_moment_plot(rbin, vphi_magbin)
 			elif 'pressure' == plotting_list[i] :
-				Pressure_Gravity_ratio(rbin, rhobin, vrmsbin, vphi_magbin)
+				Pressure_Gravity_ratio(rbin, rhobin, vrmsbin, vphi_magbin, Thermal_P_ratio, Turb_P_ratio, Rot_P_ratio)
 			elif 'mass' == plotting_list[i] :
-				total_mass_plot(rbin, mTbin)
+				Total_mass_plot(rbin, mTbin)
 			elif 'mdot' == plotting_list[i] :
-				Mdot_plot(rbin, vrbin, rhobin, mdotbin)
+				Mdot_plot(rbin, py_mdot, mdotbin)
 			png_save(fileout)

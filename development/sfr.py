@@ -67,7 +67,8 @@ args = parser.parse_args()
 mp = 1.6e-24
 pi = np.pi
 parsec = 3e18
-sec_in_yr = pi* 1e7
+#sec_in_yr = pi* 1e7
+yr = 3.1558e7
 Msun = 2e33
 G = 6.67e-8
 c_s = 2.64e4
@@ -80,6 +81,9 @@ Init_matplotParams = False
 cwd = os.getcwd()
 #output_location = cwd + '/python_output'
 
+# Simulation Parameters #
+box_length = 4.8e19
+box_density = 3e-22
 # Parameters #
 bins = 1001
 dirs = ["highres/jet", "highres/nojet", "medres/jet", "medres/nojet"]
@@ -118,7 +122,7 @@ for dir, label, ltype, lw in zip(dirs,labels,ltypes,lweights):
 		except ValueError : 
 			print sinkfile + " empty" 
 
-	gasMass = 4.8e19**3 * 3e-22 / 2e33
+	gasMass = box_length**3 * box_density / Msun
 	tarray = np.log10(tarray) 
 	mtot = np.log10(mtot) - math.log10(gasMass)
 	mtot = 1e1**mtot
@@ -134,14 +138,15 @@ for dir, label, ltype, lw in zip(dirs,labels,ltypes,lweights):
         lt =  np.arange(5.5, 6.1, 0.1 )
 	plt.loglog( 1e1**lt, 1e1**(p[0]*lt + p[1]), ls="dotted", linewidth=1,color="black")
 
-plt.xlim(1e5, 2e6)
+
 #arr =  np.arange(2e5, 3e6, 2e5)
 #plt.loglog( arr, 0.1*(arr/1e6)**2, linewidth=2, ls="dotted",label="$\\propto (t-t_*)^2$")
+plt.xlim(1e5, 2e6)
 plt.ylim(5e-4, 0.2)
 plt.xlabel("$t-t_*$ [yrs]", fontsize=20)
 plt.ylabel("$M_*/M_{\\rm tot}$", fontsize=20)
 plt.legend(loc="best",fontsize=20)
-plt.xticks(fontsize=17)
-plt.yticks(fontsize=17)
+#plt.xticks(fontsize=17)
+#plt.yticks(fontsize=17)
 
 plt.savefig(cwd + "test.pdf")
