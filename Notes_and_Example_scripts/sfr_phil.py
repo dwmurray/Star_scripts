@@ -48,7 +48,8 @@ parser.add_argument('end', metavar='N2', type=int)
 parser.add_argument('step', metavar='N3', type=int)
 args = parser.parse_args()
 
-dirs = ["hires/jet", "hires/nojet", "medres/jet", "medres/nojet"]
+#dirs = ["hires/jet", "hires/nojet", "medres/jet", "medres/nojet"]
+dirs = ["highres/jet", "highres/nojet", "medres/jet", "medres/nojet"]
 labels = ["$16K^3$ jet", "no jet", "$8K^3$ jet", "no jet"]
 ltypes = ["solid", "dashed", "solid", "dashed"]
 lweights = [4, 4, 2, 2]
