@@ -58,6 +58,21 @@ def Setup_plot_window():
 
 
 def Velocity_plot(rbin, vrbin, vrmsbin, vmagbin, vKbin, vphi_magbin, sum_velocities, MC15_velocity):
+#	if( args.avg) :
+#		host = host_subplot(111, axes_class=AA.Axes)
+#		host.set_xscale("log", nonposx='clip')
+#		host.set_yscale("log", nonposy='clip')
+#		print rbin, vrbin/1e5
+#		#sys.exit()
+#		host.errorbar(rbin, -vrbin/1e5, xerr=0.0*rbin, yerr=sigma, color='bv-', label='$u_r$')
+#		host.loglog( rbin, vrmsbin/1e5, 'g.-', label='$v_T$')  
+#		host.loglog( rbin, vKbin/1e5, 'r--', label='$v_K$')  
+#		host.loglog( rbin, vphi_magbin/1e5, 'k+', label='$v_\phi$')
+#		host.axhline( c_s/1e5, color = 'black',label='$c_s$')  
+#		#host.ylim(5e-3, 3e1)
+#		#host.xlim(3e-3, 3e0)
+#		host.ylabel(r'$u_r, \, v_T, \, v_K, \, v_\phi, \, c_s$ $({\rm km\, s}^{-1})$', fontsize = 25)
+#		host.xlabel(r'$r$ $({\rm pc})$', fontsize=25)
 	plt.loglog( rbin, -vrbin/1e5, 'bv-', label='$u_r$')
 	plt.loglog( rbin, vrmsbin/1e5, 'g.-', label='$v_T$')  
 	#plt.loglog( rbin, vmagbin/1e5, 'm.', label='$v_{Total}$')  
@@ -66,16 +81,16 @@ def Velocity_plot(rbin, vrbin, vrmsbin, vmagbin, vKbin, vphi_magbin, sum_velocit
 	plt.loglog( rbin, vphi_magbin/1e5, 'k+', label='$v_\phi$')
 	#plt.loglog( rbin, sum_velocities/1e5, 'c', label='$\sqrt{v_r^2 + v_T^2 + v_\phi^2}$')  
 	# Need to mask this so that if not fully refined still get values.
-#	power_law_fit = least_squares_fitting(log_x_sorted=rbin, log_y_sorted=vrmsbin)	
-#	plt.loglog( rbin, power_law_fit, 'k.-', label='$powerlaw$')
-#	print power_law_fit
-#	sys.exit()
+	#power_law_fit = least_squares_fitting(log_x_sorted=rbin, log_y_sorted=vrmsbin)	
+	#plt.loglog( rbin, power_law_fit, 'k.-', label='$powerlaw$')
+	#print power_law_fit
+	#sys.exit()
 	plt.axhline( c_s/1e5, color = 'black',label='$c_s$')  
 	plt.ylim(5e-3, 3e1)
 	plt.xlim(3e-3, 3e0)
 	plt.ylabel(r'$u_r, \, v_T, \, v_K, \, v_\phi, \, c_s$ $({\rm km\, s}^{-1})$', fontsize = 25)
 	plt.xlabel(r'$r$ $({\rm pc})$', fontsize=25)
-
+	
 def Turbulent_velocity_plot(rbin, vrmsbin, vrms_r_bin, vrms_l_bin):
 	plt.loglog( rbin, vrmsbin/1e5, 'go-', label='$v_T$', lw = 1)  
 	plt.loglog( rbin, vrms_r_bin/1e5, '-', color='blue', label='$v_{T,r}$')  
@@ -88,6 +103,7 @@ def Turbulent_velocity_plot(rbin, vrmsbin, vrms_r_bin, vrms_l_bin):
 	plt.xlabel('$r$ $(\\rm pc)$', fontsize=25)
 	
 def Density_plot(rbin, rhobin):
+	plt.clf()
 	host = host_subplot(111, axes_class=AA.Axes)
 	par1 = host.twinx()
 	Ndensity_Y_min = 1e1
@@ -278,13 +294,14 @@ def Find_r_star(rbin, mTbin, particleMass):
 				break
 			if r1 == False:
 				upper_bound = upper_bound + .05
-				print 'Upper bound was not satisfied'
 				index = 0
+				if infinite_loop_check == 1:
+					print 'Upper bound was not satisfied'
 			if r0 == False:
 				lower_bound = lower_bound - .05
-				print 'Lower bound was not satisfied'
 				index = 0
-		
+				if infinite_loop_check == 1:
+					print 'Lower bound was not satisfied'
 	# We now have r0, m0 and r1, m1, time to interpolate and then find r_*
 	m = gas_to_particle_ratio * disk_particle_mass
 	try:
@@ -386,10 +403,22 @@ def standardize_File_number(input_File_number):
 
 
 def obtain_avg_value(tot_bin, particle_count, quantity_to_avg_bin):
-	#We count up particles outside this func now.
-#	particle_count = particle_count + 1
+	""" This function calculates the average and standard deviation.
+	"""
+	global Values_4_std
+	global sigma
+	# Keep track of the values in the avg to determine the standard deviation.
+	Values_4_std.append(quantity_to_avg_bin)
+	# Determine the new total.
 	tot_bin = tot_bin + quantity_to_avg_bin
-	return tot_bin, tot_bin/particle_count
+#	print tot_bin
+	mean = tot_bin/particle_count
+#	print 'mean', mean
+	sigma = np.sqrt((Values_4_std - mean)**2/particle_count)
+#	print len(Values_4_std), len(sigma), particle_count
+#	print 'Values_4_std', Values_4_std
+#	print 'sigma', sigma
+	return tot_bin, mean
 
 
 ############################################
@@ -428,6 +457,10 @@ parser.add_argument('--pdf', action='store_true')
 args = parser.parse_args()
 global Init_matplotParams
 Init_matplotParams = False
+global Values_4_std
+Values_4_std = []
+global sigma
+sigma = []
 file_prefix = 'rad_profile'
 
 center_mass_4_avg = args.center_mass_4avg
@@ -489,6 +522,10 @@ if (args.avg):
 	tot_vrms = 0
 	tot_density = 0
 	tot_mdot = 0
+	deltaMass = center_mass_4_avg * 0.25
+	particle_count = 0
+#	if deltaMass > 1.0:
+#		deltaMass = 1.0 # range should be no more than a solar mass
 
 # The file looks like this:
 #'{file_prefix}{framestep}_{compare_file}_{particle_number}.out'
@@ -572,45 +609,55 @@ for timestep in range(args.start,args.end,args.step) :
 		Thermal_P_ratio, Turb_P_ratio, Rot_P_ratio = Pressure_calculation()
 		# If we're looking to get an average profile,
 		if (args.avg):
-#			if len(plotting_list) > 1:
-#				print "please avg over one quantity at a time for now."
-#				sys.exit()
+			if len(plotting_list) > 1:
+				print "please avg over one quantity at a time for now."
+				sys.exit()
 			particleMass_solar = particleMass/Msun
-			deltaMass = center_mass_4_avg * 0.5
-			if deltaMass > 1.0:
-				deltaMass = 1.0 # range should be no more than a solar mass
 			lower_bound = center_mass_4_avg - deltaMass
 			upper_bound = center_mass_4_avg + deltaMass
 			if lower_bound <= particleMass/Msun <= upper_bound:
 				print particleMass_solar
-#				print plotting_list
-#				sys.exit()
-				particle_count = 0
 				savefig = False
-				for i in range(len(plotting_list)):
-					particle_count = particle_count + 1
-					Setup_plot_window()
-					fileout = "avg_{0}_{1}Msun_{2}_{3}.{4}".format(plotting_list[i], center_mass_4_avg, compare_file, timestep, output_format)
-					if 'velocity' == plotting_list[i] :
-						tot_vr, avg_vr = obtain_avg_value(tot_vr, particle_count, vrbin)
+				#for i in range(len(plotting_list)): # For now remove looping through all options.
+				particle_count = particle_count + 1
+				Setup_plot_window()
+#				fileout = "avg_{0}_{1}Msun_{2}_{3}.{4}".format(plotting_list[i], center_mass_4_avg, compare_file, timestep, output_format)
+#				if 'velocity' == plotting_list[i] :
+				if( 'velocity' in plotting_list) :
+
+					tot_vr, avg_vr = obtain_avg_value(tot_vr, particle_count, vrbin)
+					print 'step', timestep
+					print 'end', args.end-2
+					if timestep >= (args.end-2):
+						fileout = "avg_{0}_{1}Msun_{2}_{3}.{4}".format('velocity', center_mass_4_avg, compare_file, timestep, output_format)
 						Velocity_plot(rbin, avg_vr, vrmsbin, vmagbin, vKbin, vphi_magbin, sum_velocities, MC15_velocity)
 						savefig = True
-					elif 'turbulent' == plotting_list[i] :
-						tot_vrms, avg_vrms = obtain_avg_value(tot_vrms, particle_count, vrmsbin)
-						Turbulent_velocity_plot(rbin, avg_vrms, vrms_r_bin, vrms_l_bin)
-						savefig = True
-					elif 'density' == plotting_list[i] :
-						tot_density, avg_density = obtain_avg_value(tot_density, particle_count, rhobin)
-						Density_plot(rbin, avg_density)
-						savefig = True
-					elif 'mdot' == plotting_list[i] :
-#						py_mdot = -4.0*pi*rhobin*vrbin*(parsec*rbin)**2*yr/Msun) 
-						tot_mdot, avg_mdot = obtain_avg_value(tot_mdot, particle_count, py_mdot)
-						Mdot_plot(rbin, avg_mdot, mdotbin)
-						savefig = True
-					if (savefig):
-						png_save(fileout)
-						savefig = False
+					print len(rbin), len(vrbin), len(sigma)
+					#print sigma[0]
+#					plt.errorbar(rbin, vrbin, xerr, sigma[0])
+
+#					print 'total', type(tot_vr), 'avg', type(avg_vr)
+#					print tot_vr
+#					print 'avg', avg_vr
+#					
+#				elif 'turbulent' == plotting_list[i] :
+#					tot_vrms, avg_vrms = obtain_avg_value(tot_vrms, particle_count, vrmsbin)
+#					Turbulent_velocity_plot(rbin, avg_vrms, vrms_r_bin, vrms_l_bin)
+#					savefig = True
+#				elif 'density' == plotting_list[i] :
+#					tot_density, avg_density = obtain_avg_value(tot_density, particle_count, rhobin)
+#					Density_plot(rbin, avg_density)
+#					savefig = True
+#				elif 'mdot' == plotting_list[i] :
+#					#						py_mdot = -4.0*pi*rhobin*vrbin*(parsec*rbin)**2*yr/Msun) 
+#					tot_mdot, avg_mdot = obtain_avg_value(tot_mdot, particle_count, py_mdot)
+#					Mdot_plot(rbin, avg_mdot, mdotbin)
+#					savefig = True
+				if (savefig):
+					png_save(fileout)
+					savefig = False
+			#If we are averaging we do not also want to 
+			# write out all the plots, so go to next timestep.
 			continue
 
 		print 'Dispersing to plot.'

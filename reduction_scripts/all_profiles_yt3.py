@@ -259,7 +259,7 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 			vr_nomass[i] = (vx[i]*x[i] + vy[i]*y[i] + vz[i]*z[i])/r[i]
 			vr = vr_nomass[i] * cellMass[i]
 			#mdotbin[index] = mdotbin[index] + vr # vr is mdot right now
-			#TO DO create option for this
+			#TO DO create option for this JET
 			if( vr < 0.):
 				mdotbin[index] = mdotbin[index] + vr/r[i]
 				vrbin[index] = vrbin[index] + vr
