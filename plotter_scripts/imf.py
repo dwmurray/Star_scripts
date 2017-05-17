@@ -14,7 +14,7 @@ rcParams['ytick.major.width'] = 3    # major tick width in points
 rcParams['ytick.minor.width'] = 2    # major tick width in points
 rcParams['ytick.major.size'] = 14    # major tick width in points
 rcParams['ytick.minor.size'] = 8    # major tick width in points
-#
+
 
 import h5py
 import numpy
@@ -49,18 +49,18 @@ def Obtain_particles(file, sinkfile, fileIndex) :
 	#current_time = 0.0
         return ID, mass, current_time
 
-def run_quad(dir_label):
-
+def simulation_info():
 	times = []
 	masses = []
 	number_of_stars = []
 	prefix = 'output_'
 	start_time = 0
 	calc_time = 0
-	print 'looking at all sink files in dir.', dir_label
+
 	for fileIndex in range( 1, 500) : 
 		file = prefix+"{0:05d}/info_{0:05d}.txt".format(fileIndex)
 		sinkfile = prefix+"{0:05d}/sink_{0:05d}.info".format(fileIndex)
+		print file, sinkfile
 		if not glob.glob(file):
 			continue
 		if not glob.glob(sinkfile):
@@ -75,12 +75,11 @@ def run_quad(dir_label):
 				times.append(current_time)
 				masses.append(mass_part_solar.sum())
 				end_time = current_time
-			if start_time == 0 :
+			else:
 				start_time = current_time
 				times.append(current_time)
 				masses.append(mass_part_solar.sum())
 				end_time = current_time
-
 			try:
 				number_of_stars.append(len(mass_part_solar))
 			except TypeError:
@@ -88,12 +87,12 @@ def run_quad(dir_label):
 			#sortList = numpy.argsort( mass_part_solar)[::-1]
 			#print " "
 			#print "Masses:" + str(zip(ID[sortList],mass_part_solar[sortList]))
-			return numpy.array(times), mass_part_solar, number_of_stars, start_time, end_time
-#	return numpy.array(times), numpy.array(masses), number_of_stars, start_time, end_time
+#			return numpy.array(times), numpy.array(masses), number_of_stars, start_time, end_time
+	return numpy.array(times), numpy.array(masses), number_of_stars, start_time, end_time
 
 
-def plot(dir_label):
-	qtime, qmass, number_stars, start_time, end_time = run_quad(dir_label)
+def plot():
+	qtime, qmass, number_stars, start_time, end_time = simulation_info()
 	#print qtime, qmass, number_stars
 	#print 'last time in octant', qtime[-1]
 	number_stars_at_mass = []
@@ -163,9 +162,9 @@ def plot(dir_label):
 		pl.plot(x, y_fit, 'r')
 		pl.xlabel(r'$\log_{10}(m)$', size=15)
 		pl.ylabel(r'$\log N_{*}$', size=20)
-		pl.ylim(1.9e0, 2e1)
-		pl.xlim(-1.e0, 1.5e0)
-		pl.savefig(home + "hd_32jeans_1024_v1/imf_hist.pdf")
+#		pl.ylim(1.9e0, 2e1)
+#		pl.xlim(-1.e0, 1.5e0)
+		pl.savefig(home + "_imf_hist.pdf")
 	else:
 		pl.loglog(mass_value, number_stars_at_mass)
 		#print boolMass
@@ -181,7 +180,7 @@ def plot(dir_label):
 		#pl.xlim(1.e-1, 1e2)
 		#pl.ylabel('$N$ ', fontsize = 25)
 		#pl.xlabel( "$M_*$ $(M_\odot)$", fontsize = 25)
-		pl.savefig(home + "hd_32jeans_1024_v1/imf.pdf")
+		pl.savefig(home + "_imf.pdf")
 
 
 
@@ -202,8 +201,9 @@ qmasses = []
 totnumber_stars = []
 
 #home = "/home/m/murray/dwmurray/" 
-home = "/Users/dwmurray/Work/Ramses_hydro/"
-os.chdir(home + "hd_32jeans_1024_v1")
-plot('32')
+home = os.getcwd()#"/Users/dwmurray/Work/ramses-jet/"
+print home
+#os.chdir(home)
+plot()
 
 
