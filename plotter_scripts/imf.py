@@ -164,7 +164,7 @@ def plot():
 		pl.ylabel(r'$\log N_{*}$', size=20)
 #		pl.ylim(1.9e0, 2e1)
 #		pl.xlim(-1.e0, 1.5e0)
-		pl.savefig(home + "_imf_hist.pdf")
+		pl.savefig(home + "/imf_hist.pdf")
 	else:
 		pl.loglog(mass_value, number_stars_at_mass)
 		#print boolMass
@@ -180,7 +180,7 @@ def plot():
 		#pl.xlim(1.e-1, 1e2)
 		#pl.ylabel('$N$ ', fontsize = 25)
 		#pl.xlabel( "$M_*$ $(M_\odot)$", fontsize = 25)
-		pl.savefig(home + "_imf.pdf")
+		pl.savefig(home + "/imf.pdf")
 
 
 
