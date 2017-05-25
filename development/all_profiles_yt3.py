@@ -116,13 +116,17 @@ def getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, curr
 #	sys.exit()
 	
 	if( args.magnetic) :
-		Bx = sp["ramses_magx"]
+		Bx = sp["ramses_magx"]#In gauss
 		By = sp["ramses_magy"]
 		Bz = sp["ramses_magz"]
 		Btot = numpy.sqrt(Bx*Bx + By*By + Bz*Bz)
-		#print Bx
-		print 'B Field', Btot
-		#sys.exit()
+		#Convert away from the YTArray
+		Bx = numpy.array(Bx)
+		By = numpy.array(By)
+		Bz = numpy.array(Bz)
+		Btot = numpy.array(Btot)
+		#print 'B Field', Btot
+#		sys.exit()
 
 	# grams
 	cellMass = numpy.array(sp["cell_mass"])# yt now loads in g not Msolar
@@ -265,11 +269,13 @@ def getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, curr
 				continue
 			index = int((math.log10(r[i]/parsec)-lgradiusMin)*bins/(lgradiusSph - lgradiusMin))
 			if(index >= 0 and index < bins) :
+				#print Bxbin[index]
+				#print Bx[i]
 				Bxbin[index] = Bxbin[index] + Bx[i]
 				Bybin[index] = Bybin[index] + By[i]
 				Bzbin[index] = Bzbin[index] + Bz[i]
 				Btotbin[index] = Btotbin[index] + Btot[i]
-
+#	sys.exit()
 ############################################################################
 ############################################################################
 	print 'Obtaining vr'
@@ -1077,8 +1083,8 @@ def Particle_Reduction(index):
 		# Eventually, we will write this info out into sink_.info as well.
 		# Note that lx, ly and lzstar are in CODE UNITS! particle_age has been converted to s.
 		lxstar, lystar, lzstar, Particle_age = Obtain_Part_info_csv(sinkcsvfile)
-		print lxstar, lystar, lzstar
-		print Particle_age
+#		print lxstar, lystar, lzstar
+#		print Particle_age
 #		sys.exit()
 		# Now that we've loaded the relevant data, pull out what we require.
 		#Creation time is available in FLASH, not implemented yet for the RAMSES data.
