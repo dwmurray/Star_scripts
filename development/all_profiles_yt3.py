@@ -74,15 +74,31 @@ def getRadialProfile_yt(pf, xc, yc, zc, vxc, vyc, vzc, fileout="rad_profile.out"
 	
 	numpy.savetxt(fileout, zip(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, rhobin, mdotbin, norm, angXbin, angYbin, angZbin), fmt="%15.9E")
 
-def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_time, fileout="rad_profile.out", radiusMin=1e-3, radiusSphere=3.0, ParticleMass = 0.0) : 
+def getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, current_time, fileout="rad_profile.out", radiusMin=1e-3, radiusSphere=3.0, ParticleMass = 0.0) : 
 	global Penrose_matrix_Particles
 	print 'Sphere radius is: ', radiusSphere
 	ts = time.time()
 	st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 	print st
 
+	#Pull out the Particle_attributes
+	xc = Particle_attributes[0]
+	yc = Particle_attributes[1]
+	zc = Particle_attributes[2]
+	vxc = Particle_attributes[3]
+	vyc = Particle_attributes[4]
+	vzc = Particle_attributes[5]
+	lxc = Particle_attributes[6]
+	lyc = Particle_attributes[7]
+	lzc = Particle_attributes[8]
+
+	print xc, yc, zc
+	print vxc, vyc, vzc
+	print lxc, lyc, lzc
+
 	sp = pf.h.sphere([xc, yc, zc], (radiusSphere, 'pc'))
 
+	#Determine the x,y,z distances from the sink particle for each cell in the sphere.
 	x = sp["x"].in_cgs() - xc
 	y = sp["y"].in_cgs() - yc
 	z = sp["z"].in_cgs() - zc
@@ -92,6 +108,21 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 	y = numpy.array(y)
 	z = numpy.array(z)
 	r = numpy.array(r)
+
+	#Calculate the l_hat of the sink particle
+	lrc = numpy.sqrt(lxc*lxc + lyc*lyc + lzc*lzc)
+	l_hat = (lxc, lyc, lzc)/lrc
+	print 'l_hat', l_hat
+#	sys.exit()
+	
+	if( args.magnetic) :
+		Bx = sp["ramses_magx"]
+		By = sp["ramses_magy"]
+		Bz = sp["ramses_magz"]
+		Btot = numpy.sqrt(Bx*Bx + By*By + Bz*Bz)
+		#print Bx
+		print 'B Field', Btot
+		#sys.exit()
 
 	# grams
 	cellMass = numpy.array(sp["cell_mass"])# yt now loads in g not Msolar
@@ -121,7 +152,7 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 	print st
 
 	# loosely define the ang velocity
-	# give proper size of lx
+	# To give proper size of lx
 	# Its before bulk velocity subtraction
 	lx = y*vz - vy*z
 	ly = z*vx - x*vz
@@ -215,8 +246,31 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 		vx_bulkvelocity_bin = vx_shell_bulk_bin
 		vy_bulkvelocity_bin = vy_shell_bulk_bin
 		vz_bulkvelocity_bin = vz_shell_bulk_bin
+############################################################################
+############################################################################
+	if( args.magnetic) :
+		print 'Obtaining Magnetic field etc...'
+		ts = time.time()
+		st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+		print st
+		Bxbin = numpy.zeros(bins)
+		Bybin = numpy.zeros(bins)
+		Bzbin = numpy.zeros(bins)
+		Btotbin = numpy.zeros(bins)
 
+		lgradiusMin = math.log10( radiusMin)
+		lgradiusSph = math.log10( radiusSphere)
+		for i in range(r.size) : 
+			if( r[i]/parsec < radiusMin) :
+				continue
+			index = int((math.log10(r[i]/parsec)-lgradiusMin)*bins/(lgradiusSph - lgradiusMin))
+			if(index >= 0 and index < bins) :
+				Bxbin[index] = Bxbin[index] + Bx[i]
+				Bybin[index] = Bybin[index] + By[i]
+				Bzbin[index] = Bzbin[index] + Bz[i]
+				Btotbin[index] = Btotbin[index] + Btot[i]
 
+############################################################################
 ############################################################################
 	print 'Obtaining vr'
 	ts = time.time()
@@ -254,21 +308,36 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 			vx[i] = vx[i] - vx_bulkvelocity_bin[index]
 			vy[i] = vy[i] - vy_bulkvelocity_bin[index]
 			vz[i] = vz[i] - vz_bulkvelocity_bin[index]
-			#TO DO only count velocities which are negative, as
-			#The jet is pushing out ~1/3 of the mass.
+
 			vr_nomass[i] = (vx[i]*x[i] + vy[i]*y[i] + vz[i]*z[i])/r[i]
 			vr = vr_nomass[i] * cellMass[i]
 			#mdotbin[index] = mdotbin[index] + vr # vr is mdot right now
-			#TO DO create option for this JET
-			if( vr < 0.):
+			if( args.jet) :
+				# x[i],y[i],z[i] are already determined as the distance from sink to that cell i
+				# and r[i] is the mag of that vector distance.
+				#The jet is pushing out ~1/3 of the mass.
+				# Calculate the r_hat from sink particle to each cell
+				r_hat = (x[i], y[i], z[i])/r[i] # cells x 3 matrix.
+				dot_r_hat_l_hat = abs(r_hat[0]*l_hat[0]+r_hat[1]*l_hat[1]+r_hat[2]*l_hat[2])
+				neg_dot_r_hat_l_hat = abs(r_hat[0]*-1.0*l_hat[0]+r_hat[1]*-1.0*l_hat[1]+r_hat[2]*-1.0*l_hat[2])
+				if( dot_r_hat_l_hat > jet_open_angle):
+					# Inside the Jet opening angle, don't use u_r
+					continue
+				else :
+					mdotbin[index] = mdotbin[index] + vr/r[i]
+					vrbin[index] = vrbin[index] + vr
+			else:
 				mdotbin[index] = mdotbin[index] + vr/r[i]
 				vrbin[index] = vrbin[index] + vr
 
+			#Original Kludge
+#			if( vr < 0.):
+#				mdotbin[index] = mdotbin[index] + vr/r[i]
+#				vrbin[index] = vrbin[index] + vr
+#
 			# Original
 #			mdotbin[index] = mdotbin[index] + vr/r[i]
 #			vrbin[index] = vrbin[index] + vr
-
-		
 	vrbin = vrbin/mbin
 	# Check to see if these come out the same:
 	#rhobin = mbin/volbin
@@ -299,7 +368,7 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 		index = int((math.log10(r[i]/parsec)-lgradiusMin)*bins/(lgradiusSph - lgradiusMin))
 		if(index >= 0 and index < bins) :
 			mbin[index] = mbin[index] + cellMass[i]
-			# Now calculate the angular momentum (technically just r x v here)
+			# Now calculate the angular momentum of cell i (technically just r x v here)
 			lx[i] = y[i]*vz[i] - vy[i]*z[i]
 			ly[i] = z[i]*vx[i] - x[i]*vz[i]
 			lz[i] = x[i]*vy[i] - y[i]*vx[i]
@@ -563,10 +632,12 @@ def getRadialProfile_py(pf, xc, yc, zc, ParticleID, this_creation_time, current_
 	
 	# Include the particle mass
 	Particle_mass = numpy.full((bins), ParticleMass)
-	creation_time = numpy.full((bins), this_creation_time)
+	CreationTime = numpy.full((bins), creation_time)
 	current_time = numpy.full((bins), current_time)
-
-	numpy.savetxt(fileout, zip(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, rhobin, mdotbin, norm, angXbin, angYbin, angZbin, vphi_magbin, sum_velocities, Particle_mass, creation_time, current_time, vrms_r_bin, vrms_l_bin, vrms_theta_bin, vrms_phi_bin), fmt="%15.9E")
+	if( args.magnetic):
+		print fileout[:-4] + 'magnetic.out'
+		numpy.savetxt(fileout[:-4] + 'magnetic.out', zip(Bxbin, Bybin, Bzbin, Btotbin), fmt="%15.9E")
+	numpy.savetxt(fileout, zip(rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, rhobin, mdotbin, norm, angXbin, angYbin, angZbin, vphi_magbin, sum_velocities, Particle_mass, CreationTime, current_time, vrms_r_bin, vrms_l_bin, vrms_theta_bin, vrms_phi_bin), fmt="%15.9E")
 
 ################################################
 ################################################
@@ -777,11 +848,11 @@ def FLASH_additional_stuff():
 #			vzc = 0
 #			current_time = pf.current_time
 #			ParticleID = int(42)
-#			this_creation_time = 0.0
+#			creation_time = 0.0
 #			Particle_age = 0.0
 #			this_Particle_Mass = 0.0
 #			print 'Passing to the analysis script'
-#			pass_to_analysis_script(pf, xc, yc, zc, ParticleID, this_creation_time, 
+#			pass_to_analysis_script(pf, xc, yc, zc, ParticleID, creation_time, 
 #						current_time, radiusMin, radiusSphere, ParticleMass, 
 #						File_number, sinkfile, file)
 
@@ -843,7 +914,7 @@ def standardize_File_number(input_File_number):
 		sys.exit()
 	return output_File_number
 
-def RAMSES_obtain_individual_part_attributes(pf, index, Particle_ID_list, partMass, xstar, ystar, zstar, vxstar, vystar, vzstar):
+def RAMSES_obtain_individual_part_attributes(pf, index, Particle_ID_list, partMass, xstar, ystar, zstar, vxstar, vystar, vzstar, lxstar, lystar, lzstar):
 	ParticleID = Particle_ID_list[index]
 	ParticleMass = partMass[index]
 	xc = pf.quan(xstar[index], "cm")
@@ -852,7 +923,10 @@ def RAMSES_obtain_individual_part_attributes(pf, index, Particle_ID_list, partMa
 	vxc = vxstar[index]
 	vyc = vystar[index]
 	vzc = vzstar[index]
-	return ParticleID, ParticleMass, xc, yc, zc, vxc, vyc, vzc
+	lxc = lxstar[index]
+	lyc = lystar[index]
+	lzc = lzstar[index]
+	return ParticleID, ParticleMass, xc, yc, zc, vxc, vyc, vzc, lxc, lyc, lzc
 
 def Obtain_Particles(num_var_packed, pf, sinkfile, File_number):#, xc, yc, zc):#, Init_Restart):
 	global Init_Restart
@@ -907,7 +981,10 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number):#, xc, yc, zc):#
 		ystar = max_Location[1]
 		zstar = max_Location[2]
 		print 'These are the Max Density coordinates: ', xstar, ystar, zstar
-	elif len( num_var_packed) == 9: # The Nakano run.
+	elif len( num_var_packed) == 8: # Magnetic Field run
+		Particle_ID_list, partMass, xstar, ystar, zstar, \
+		    vxstar, vystar, vzstar = numpy.loadtxt( sinkfile, unpack=True, skiprows=3, comments="=")
+	elif len( num_var_packed) == 9: # The Nakano run. # or no jets
 		Particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
 		    vxstar, vystar, vzstar = numpy.loadtxt( sinkfile, unpack=True, skiprows=3, comments="=")
 	elif len( num_var_packed) == 12:# The Offner run, no tracking pjet. 
@@ -922,6 +999,21 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number):#, xc, yc, zc):#
 		print num_var_packed
 		sys.exit()
 	return Particle_ID_list, partMass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar, poly_n, md, polystate, pjet
+
+def Obtain_Part_info_csv(sinkcsvfile):
+# From Ramses output_sink.f90 for teh csv file
+#     write(ilun,'(I10,12(A1,ES20.10))')idsink(isink),',',msink(isink),&
+#          ',',xsink(isink,1),',',xsink(isink,2),',',xsink(isink,3),&
+#          ',',vsink(isink,1),',',vsink(isink,2),',',vsink(isink,3),&
+#          ',',lsink(isink,1),',',lsink(isink,2),',',lsink(isink,3),&
+#          ',',t-tsink(isink),',',dMBHoverdt(isink)
+	# Note that all of these values are returned in CODE UNITS! not cgs/solar like the sinkfile
+	scale_t      =  0.387201000000000E+04
+	Particle_ID_list, partMass, xstar, ystar, zstar, \
+	    vxstar, vystar, vzstar, lxstar, lystar, lzstar, \
+	    Particle_Age, dMBhoverdt_star = numpy.loadtxt( sinkcsvfile, unpack=True, skiprows=0, delimiter=',', comments="=")
+	Particle_Age = Particle_Age * scale_t
+	return	lxstar, lystar, lzstar, Particle_Age
 
 ###########################################################
 ########_____START_OF_Particle_Reduction_____########
@@ -945,13 +1037,15 @@ def Particle_Reduction(index):
 		File_number = standardize_File_number(index)
 		infofile = prefix + "{0}/info_{0}.txt".format(File_number)
 		sinkfile = prefix + "{0}/sink_{0}.info".format(File_number)
-		if( not os.path.isfile( sinkfile)) or ( not os.path.isfile( infofile)):
-			print "Either the sink or info file is missing."
+		sinkcsvfile = prefix + "{0}/sink_{0}.csv".format(File_number)
+		if( not os.path.isfile( sinkfile)) or ( not os.path.isfile( infofile)) or ( not os.path.isfile( sinkcsvfile)):
+			print "Either the sink_.info, info_.txt or sink_.csv file is missing."
 			return
 
 		# Copy infofile and sinkfile to the output location, they are used in the plotting routine.
 		copyfile(infofile, '{0}/info_{1}.txt'.format(output_location, File_number))
 		copyfile(sinkfile, '{0}/sink_{1}.info'.format(output_location, File_number))
+		copyfile(sinkcsvfile, '{0}/sink_{1}.csv'.format(output_location, File_number))
 		#The files exist, time to load up the information
 		pf = yt.load(infofile)
 		num_var_packed = numpy.loadtxt( sinkfile, unpack=True, skiprows=3, comments="=")
@@ -965,15 +1059,32 @@ def Particle_Reduction(index):
 					return
 			else:
 				Particle_existance = False
+		# Obtain particle information from the sinkfile
 		# The current total possible options to be packed in these ramses pieces thus far.
+		if( args.magnetic) :
+			print("Length unit: ", pf.length_unit)
+			print("Time unit: ", pf.time_unit)
+			print("Mass unit: ", pf.mass_unit)
+			print("Velocity unit: ", pf.velocity_unit)
+			pf.add_field(("gas", "ramses_magx"), function=_ramses_magx, units="gauss") 
+			pf.add_field(("gas", "ramses_magy"), function=_ramses_magy, units="gauss") 
+			pf.add_field(("gas", "ramses_magz"), function=_ramses_magz, units="gauss") 
+			print pf.all_data()["ramses_magx"]
+
 		Particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
 		    vxstar, vystar, vzstar, poly_n, md, polystate, pjet = Obtain_Particles(num_var_packed, pf, sinkfile, File_number)
-
+		# Obtain particle angular momentum from the sink.csv file.
+		# Eventually, we will write this info out into sink_.info as well.
+		# Note that lx, ly and lzstar are in CODE UNITS! particle_age has been converted to s.
+		lxstar, lystar, lzstar, Particle_age = Obtain_Part_info_csv(sinkcsvfile)
+		print lxstar, lystar, lzstar
+		print Particle_age
+#		sys.exit()
 		# Now that we've loaded the relevant data, pull out what we require.
 		#Creation time is available in FLASH, not implemented yet for the RAMSES data.
 		creation_time = 0.0
 		current_time = pf.current_time
-		Particle_age = 0.0 # current_time - this_creation_time
+		#Particle_age = 0.0 # current_time - this_creation_time
 
 		# Now that we have all the information associated with all particles in this timestep,
 		# How are we requested to loop through?
@@ -1007,6 +1118,9 @@ def Particle_Reduction(index):
 					vxc = vxstar
 					vyc = vystar
 					vzc = vzstar
+					lxc = lxstar
+					lyc = lystar
+					lzc = lzstar
 				else:
 					print 'The ID of the only particle in this timestep does not match the requested ID.'
 					print 'PartID', str(int(Particle_ID_list)) + ', ', 'Requested ID', args.ParticleID
@@ -1022,9 +1136,9 @@ def Particle_Reduction(index):
 					# This would query past the end length of xstar.size.
 					break
 				if Particle_ID_list[j] == withParticleIDValue or (withAllParticles):
-					ParticleID, ParticleMass, xc, yc, zc, vxc, vyc, vzc = \
+					ParticleID, ParticleMass, xc, yc, zc, vxc, vyc, vzc, lxc, lyc, lzc = \
 					    RAMSES_obtain_individual_part_attributes(pf, j, Particle_ID_list, \
-					    partMass, xstar, ystar, zstar, vxstar, vystar, vzstar)
+					    partMass, xstar, ystar, zstar, vxstar, vystar, vzstar, lxstar, lystar, lzstar)
 				else:
 					continue
 
@@ -1044,18 +1158,40 @@ def Particle_Reduction(index):
 					yc_search = yc
 					zc_search = zc
 			print 'Particle Coordinates', xc, yc, zc
+			#Package up the Particle Attributes to pass to Radial Profiles.
+			Particle_attributes = [xc, yc, zc, vxc, vyc, vzc, lxc, lyc, lzc]
 			fileout="{0}/{1}_{2}_{3}_{4}.out".format(output_location, out_prefix, File_number, compare_file, int(ParticleID))
 			# Finally, pass the appropriate data to the analysis script.
 			if ("particle" in compare_file) or ("bigsphere" in compare_file):
 				getRadialProfile_yt(pf,xc,yc,zc, vxc, vyc, vzc, fileout, radiusSphere, ParticleMass)
 			else:
-				getRadialProfile_py(pf, xc, yc, zc, ParticleID, creation_time, current_time, fileout, radiusMin, radiusSphere, ParticleMass)
+				getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, current_time, fileout, radiusMin, radiusSphere, ParticleMass)
 			if ( withFLASH4):
 				print 'Finished Analysing particle:', j + 1, 'of:', xstar.size, 'in File:', cwd, '/{0}{1:04d}'.format(plt_prefix, index)
 			else:
 				print 'Finished Analysing particle:', j + 1, 'of:', xstar.size, 'in Folder:', cwd, '/output_{0:05d}'.format(index)
 	# After looping through all particles in this time step.
 	return
+
+
+def _ramses_magx(field, data):
+	return yt.YTArray((data["x-Bfield-left"] + data["x-Bfield-right"]) * numpy.sqrt(4.*numpy.pi) * 0.5 / 3872.01, 'gauss')
+
+def _ramses_magy(field, data):
+	return yt.YTArray((data["y-Bfield-left"] + data["y-Bfield-right"]) * numpy.sqrt(4.*numpy.pi) * 0.5 / 3872.01, 'gauss')
+
+def _ramses_magz(field, data):
+	return yt.YTArray((data["z-Bfield-left"] + data["z-Bfield-right"]) * numpy.sqrt(4.*numpy.pi) * 0.5 / 3872.01, 'gauss')
+
+#def _ramses_magy(field, data, pf):
+#	return yt.YTArray((data["y-Bfield-left"] + data["y-Bfield-right"]) * numpy.sqrt(4.*numpy.pi) * 0.5 / 3872.01, 'gauss')
+#
+#def _ramses_magz(field, data, pf):
+#	return yt.YTArray((data["z-Bfield-left"] + data["z-Bfield-right"]) * numpy.sqrt(4.*numpy.pi) * 0.5 / 3872.01, 'gauss')
+#
+
+
+
 ###########################################################
 ###########################################################
 ###########################################################
@@ -1072,12 +1208,14 @@ parser.add_argument('bulk_vel_method', metavar='N5', type=str, nargs='?', defaul
 parser.add_argument('--maxdensity', action='store_true')
 parser.add_argument('--chk', action='store_true')
 parser.add_argument('--allparticles', action='store_true')
+parser.add_argument('--jet', action='store_true')
 parser.add_argument('--backwards', action='store_true')
 parser.add_argument('--restart', action='store_true')
 parser.add_argument('--first', action='store_true')
 parser.add_argument('--second', action='store_true')
 parser.add_argument('--parallel', action='store_true')
 parser.add_argument('--FLASH4', action='store_true')
+parser.add_argument('--magnetic', action='store_true')
 
 args = parser.parse_args()
 withParticleIDValue = args.ParticleID
@@ -1099,6 +1237,12 @@ G = 6.67e-8
 parsec = 3.09e18
 logRhoMin = -3.0
 
+alpha_jet = 1.0 # Fudge factor for the opening angle of the jet range it 0.9 to 1.1
+# theta0_jet=0.3d0 # From RAMSES jet_parameters.f90 #Note radians
+theta_jet = 0.3
+jet_open_angle = math.cos( alpha_jet * theta_jet) #math.cos expects radians.
+print 'jet open angle', jet_open_angle
+#sys.exit()
 #Depending on if we are reducing the data on scinet or another location, choose the output file path accordingly
 cwd = os.getcwd()
 output_location = cwd + '/python_output'
