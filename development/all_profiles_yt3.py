@@ -271,6 +271,7 @@ def getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, curr
 			if(index >= 0 and index < bins) :
 				#print Bxbin[index]
 				#print Bx[i]
+				# To Do MASS WEIGHTED! OR NOT?
 				Bxbin[index] = Bxbin[index] + Bx[i]
 				Bybin[index] = Bybin[index] + By[i]
 				Bzbin[index] = Bzbin[index] + Bz[i]
@@ -954,7 +955,8 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number):#, xc, yc, zc):#
 	vystar = 0.0
 	vzstar = 0.0
 #	print 'obtaining particles', len( num_var_packed)
-	if len( num_var_packed) == 0:
+#	if len( num_var_packed) == 0:
+	if True:	
 		dd = pf.all_data()
 		if ( args.maxdensity):
 			# If there is no particles, but we chose to look for the highest density point
@@ -986,6 +988,10 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number):#, xc, yc, zc):#
 		xstar = max_Location[0]
 		ystar = max_Location[1]
 		zstar = max_Location[2]
+		print type(xstar)
+		xstar = 2.38813134766e+19
+		ystar = 2.91307177734e+19
+		zstar = 1.19757666016e+19
 		print 'These are the Max Density coordinates: ', xstar, ystar, zstar
 	elif len( num_var_packed) == 8: # Magnetic Field run
 		Particle_ID_list, partMass, xstar, ystar, zstar, \
@@ -1094,7 +1100,9 @@ def Particle_Reduction(index):
 
 		# Now that we have all the information associated with all particles in this timestep,
 		# How are we requested to loop through?
-		if xstar.size == 1:# If there are zero particles, or one, both trigger here.
+		if( args.maxdensity):
+			Particle_list = 1
+		elif xstar.size == 1:# If there are zero particles, or one, both trigger here.
 			Particle_list = 1
 		elif xstar.size >= 2:
 			half_point = xstar.size/2
@@ -1113,7 +1121,7 @@ def Particle_Reduction(index):
 			else: # Do all on this cpu
 				Particle_list = xstar.size
 		for j in range(Particle_list):
-			if xstar.size == 1:
+			if Particle_list == 1:
 				if Particle_ID_list == args.ParticleID or (withAllParticles):
 					# This converts to the proper data types needed.
 					ParticleID = int(Particle_ID_list)

@@ -42,6 +42,7 @@ def Fullprojection_plotting(pf):
 		p.annotate_particles(width = (16, 'pc'))
 		fileout="{0}_{1:05d}_fullprojection_particle.{2}".format(plot_out_prefix, i, out_format)
 	p.set_font({'size':25})
+	p.set_cmap(field="density", cmap='bds_highcontrast')#yt2 default cmap
 	p.set_colorbar_label("Density", "$\\Sigma\\,({\\rm g\\,cm}^{-2})$")
 	print fileout
 	p.save(fileout)
