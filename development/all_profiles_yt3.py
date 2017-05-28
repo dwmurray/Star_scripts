@@ -955,8 +955,8 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number):#, xc, yc, zc):#
 	vystar = 0.0
 	vzstar = 0.0
 #	print 'obtaining particles', len( num_var_packed)
-#	if len( num_var_packed) == 0:
-	if True:	
+	if len( num_var_packed) == 0 or ( args.point):
+#	if True:	
 		dd = pf.all_data()
 		if ( args.maxdensity):
 			# If there is no particles, but we chose to look for the highest density point
@@ -983,15 +983,19 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number):#, xc, yc, zc):#
 			print 'Backwards search location: xc, yc, zc:', xc_search, yc_search, zc_search
 			sp = pf.sphere(YTArray( [xc_search, yc_search, zc_search], "cm"), (0.5, 'pc'))
 			max = sp.quantities["MaxLocation"]("Density")
+		else:
+			Particle_ID_list = numpy.float64(withParticleIDValue)
+			print 'looking at hardcoded specified point for testing.'
+			xc_search = 2.38813134766e+19
+			yc_search = 2.91307177734e+19
+			zc_search = 1.19757666016e+19
+			sp = pf.sphere(YTArray( [xc_search, yc_search, zc_search], "cm"), (0.5, 'pc'))
+			max = sp.quantities["MaxLocation"]("Density")
 		maxDens = pf.quan(max[0], "g*cm**(-3)")
 		max_Location = numpy.array(max[1:4]) * 16. * parsec# convert to cm 3e18
 		xstar = max_Location[0]
 		ystar = max_Location[1]
 		zstar = max_Location[2]
-		print type(xstar)
-		xstar = 2.38813134766e+19
-		ystar = 2.91307177734e+19
-		zstar = 1.19757666016e+19
 		print 'These are the Max Density coordinates: ', xstar, ystar, zstar
 	elif len( num_var_packed) == 8: # Magnetic Field run
 		Particle_ID_list, partMass, xstar, ystar, zstar, \
@@ -1230,6 +1234,7 @@ parser.add_argument('--second', action='store_true')
 parser.add_argument('--parallel', action='store_true')
 parser.add_argument('--FLASH4', action='store_true')
 parser.add_argument('--magnetic', action='store_true')
+parser.add_argument('--point', action='store_true', help='This allows you to look at a specific location. coords are hardcoded.')
 
 args = parser.parse_args()
 withParticleIDValue = args.ParticleID
