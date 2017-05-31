@@ -10,9 +10,10 @@ import sys
 
 def particle_ID_locations(sinkfile, current_item) :
 	try : 
-#		ID, mass, rstar, xstar, ystar, zstar = np.loadtxt( sinkfile, usecols=[0,1,2,3,4,5], unpack=True, skiprows=3, comments="=")
-		#For the current mhd run.
-		ID, mass, xstar, ystar, zstar = np.loadtxt( sinkfile, usecols=[0,1,2,3,4], unpack=True, skiprows=3, comments="=")
+		ID, mass, rstar, xstar, ystar, zstar = np.loadtxt( sinkfile, usecols=[0,1,2,3,4,5], unpack=True, skiprows=3, comments="=")
+		if args.magnetic:
+			#For the current mhd run.
+			ID, mass, xstar, ystar, zstar = np.loadtxt( sinkfile, usecols=[0,1,2,3,4], unpack=True, skiprows=3, comments="=")
 	except ValueError : 
 		pass
 	return ID[current_item], mass[current_item], xstar[current_item], ystar[current_item], zstar[current_item]
