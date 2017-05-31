@@ -79,11 +79,11 @@ def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
 	orthog_to_L_1 = np.array([L[2], L[2], -L[0]-L[1]])
 	orthog_to_L_2 = np.array([L[1], -L[0]-L[2], L[1]])
 #	print L
-	print len(ad['x-Bfield-right'])
-	print len(ad['x-Bfield-left'])
-	x_Bfield = (ad['x-Bfield-right'].in_cgs() + ad['x-Bfield-left'].in_cgs()) *0.5
-	print x_Bfield
-#	print ad['y-Bfield-right']
+#	print len(ad['x-Bfield-right'])
+#	print len(ad['x-Bfield-left'])
+#	x_Bfield = (ad['x-Bfield-right'].in_cgs() + ad['x-Bfield-left'].in_cgs()) *0.5
+#	print x_Bfield
+##	print ad['y-Bfield-right']
 #	print ad['y-Bfield-left']
 #	print ad['z-Bfield-right']
 #	print ad['z-Bfield-left']
@@ -93,7 +93,7 @@ def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
 
 	# What axis do we plot along?
 	Axis_to_plot = L
-	Axis_to_plot = 'z'
+#	Axis_to_plot = 'z'
 	# What field do we want to plot?
 	plot_field = 'density'
 	#plot_field = 'VelocityMagnitude'
@@ -231,19 +231,21 @@ for i in range(args.start,args.end,args.step) :
 		pass
 	print ID
 	print type(ID)
-	# Add ramses_magnetic fields for this dataset
-	print("Length unit: ", pf.length_unit)
-	print("Time unit: ", pf.time_unit)
-	print("Mass unit: ", pf.mass_unit)
-	print("Velocity unit: ", pf.velocity_unit)
-	pf.add_field(("gas", "ramses_magx"), function=_ramses_magx, units="gauss") 
-	pf.add_field(("gas", "ramses_magy"), function=_ramses_magy, units="gauss") 
-	pf.add_field(("gas", "ramses_magz"), function=_ramses_magz, units="gauss") 
-	print pf.all_data()["ramses_magx"]
+	if args.magnetic :
+		# Add ramses_magnetic fields for this dataset
+		print("Length unit: ", pf.length_unit)
+		print("Time unit: ", pf.time_unit)
+		print("Mass unit: ", pf.mass_unit)
+		print("Velocity unit: ", pf.velocity_unit)
+		pf.add_field(("gas", "ramses_magx"), function=_ramses_magx, units="gauss") 
+		pf.add_field(("gas", "ramses_magy"), function=_ramses_magy, units="gauss") 
+		pf.add_field(("gas", "ramses_magz"), function=_ramses_magz, units="gauss") 
+		print pf.all_data()["ramses_magx"]
 
 	for current_item in range(len(ID)):	
 		ParticleID, ParticleMass, xc, yc, zc = particle_ID_locations(sinkfile, current_item)
 		part_center = yt.YTArray([xc, yc, zc], 'cm')
+		print 'particle location', part_center
 #		ad = pf.all_data()
 #		sys.exit()
 		if ParticleID == withParticleIDValue or withAllParticles:
