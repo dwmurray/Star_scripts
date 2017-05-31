@@ -49,7 +49,7 @@ def Fullprojection_plotting(pf):
 	p.save(fileout)
 
 
-def Projection_plotting(pf, ParticleID, part_center, zoom_width=2):
+def Projection_plotting(pf, ParticleID, part_center, zoom_width=2.0):
 	#plot_field = 'velocity' + plot_axis
 	plot_field = 'density'
 
@@ -71,7 +71,7 @@ def Projection_plotting(pf, ParticleID, part_center, zoom_width=2):
 
 
 def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
-	ad = pf.all_data()
+#	ad = pf.all_data()
 #	sp = pf.h.sphere([xc, yc, zc], (zoom_width + 0.5, "pc"))
 	sp = pf.h.sphere(part_center, (zoom_width + 0.5, "pc"))
 	# Get the angular momentum vector for the sphere.
@@ -251,7 +251,7 @@ for i in range(args.start,args.end,args.step) :
 #		sys.exit()
 		if ParticleID == withParticleIDValue or withAllParticles:
 			if (withProjection):
-				Projection_plotting(pf, ParticleID, part_center, zoom_width=2.0)
+				Projection_plotting(pf, ParticleID, part_center, zoom_width)
 			elif (withSlice):
 				Slice(pf, ParticleID, part_center, zoom_width)
 			elif (args.offslice):
