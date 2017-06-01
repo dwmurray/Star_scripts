@@ -303,22 +303,6 @@ def getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, curr
 			continue
 		index = int((math.log10(r[i]/parsec)-lgradiusMin)*bins/(lgradiusSph - lgradiusMin))
 		if(index >= 0 and index < bins) :
-			#mbin[index] = mbin[index] + cellMass[i]
-			# This is a volume weighted density. i.e. Calculate the mass
-			# We'll then divide the mass by volbin
-			rhobin[index] = rhobin[index] + cellMass[i]
-			volbin[index] = volbin[index] + cellVolume[i]
-			# getting a mass weighted speed out of a velocity (Mdot * distance). 
-			#vr = ((vx[i] - vx_bulkvelocity_bin[index])*x[i] + (vy[i] - vy_bulkvelocity_bin[index])*y[i] + (vz[i] - vz_bulkvelocity_bin[index])*z[i])*cellMass[i]/r[i]
-
-			# reset vx, vy, vz to remove bulk velocity
-			vx[i] = vx[i] - vx_bulkvelocity_bin[index]
-			vy[i] = vy[i] - vy_bulkvelocity_bin[index]
-			vz[i] = vz[i] - vz_bulkvelocity_bin[index]
-
-			vr_nomass[i] = (vx[i]*x[i] + vy[i]*y[i] + vz[i]*z[i])/r[i]
-			vr = vr_nomass[i] * cellMass[i]
-			#mdotbin[index] = mdotbin[index] + vr # vr is mdot right now
 			if( args.jet) :
 				# x[i],y[i],z[i] are already determined as the distance from sink to that cell i
 				# and r[i] is the mag of that vector distance.
@@ -326,16 +310,28 @@ def getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, curr
 				# Calculate the r_hat from sink particle to each cell
 				r_hat = (x[i], y[i], z[i])/r[i] # cells x 3 matrix.
 				dot_r_hat_l_hat = abs(r_hat[0]*l_hat[0]+r_hat[1]*l_hat[1]+r_hat[2]*l_hat[2])
-				neg_dot_r_hat_l_hat = abs(r_hat[0]*-1.0*l_hat[0]+r_hat[1]*-1.0*l_hat[1]+r_hat[2]*-1.0*l_hat[2])
+				#neg_dot_r_hat_l_hat = abs(r_hat[0]*-1.0*l_hat[0]+r_hat[1]*-1.0*l_hat[1]+r_hat[2]*-1.0*l_hat[2])
 				if( dot_r_hat_l_hat > jet_open_angle):
 					# Inside the Jet opening angle, don't use u_r
 					continue
-				else :
-					mdotbin[index] = mdotbin[index] + vr/r[i]
-					vrbin[index] = vrbin[index] + vr
-			else:
-				mdotbin[index] = mdotbin[index] + vr/r[i]
-				vrbin[index] = vrbin[index] + vr
+
+			#mbin[index] = mbin[index] + cellMass[i]
+			# This is a volume weighted density. i.e. Calculate the mass
+			# We'll then divide the mass by volbin
+			rhobin[index] = rhobin[index] + cellMass[i]
+			volbin[index] = volbin[index] + cellVolume[i]
+			# getting a mass weighted speed out of a velocity (Mdot * distance). 
+			#vr = ((vx[i] - vx_bulkvelocity_bin[index])*x[i] + (vy[i] - vy_bulkvelocity_bin[index])*y[i] + (vz[i] - vz_bulkvelocity_bin[index])*z[i])*cellMass[i]/r[i]
+			# reset vx, vy, vz to remove bulk velocity
+			vx[i] = vx[i] - vx_bulkvelocity_bin[index]
+			vy[i] = vy[i] - vy_bulkvelocity_bin[index]
+			vz[i] = vz[i] - vz_bulkvelocity_bin[index]
+				
+			vr_nomass[i] = (vx[i]*x[i] + vy[i]*y[i] + vz[i]*z[i])/r[i]
+			vr = vr_nomass[i] * cellMass[i]
+			#mdotbin[index] = mdotbin[index] + vr # vr is mdot right now
+			mdotbin[index] = mdotbin[index] + vr/r[i]
+			vrbin[index] = vrbin[index] + vr
 
 			#Original Kludge
 #			if( vr < 0.):
@@ -374,6 +370,17 @@ def getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, curr
 			continue
 		index = int((math.log10(r[i]/parsec)-lgradiusMin)*bins/(lgradiusSph - lgradiusMin))
 		if(index >= 0 and index < bins) :
+			if( args.jet) :
+				# x[i],y[i],z[i] are already determined as the distance from sink to that cell i
+				# and r[i] is the mag of that vector distance.
+				#The jet is pushing out ~1/3 of the mass.
+				# Calculate the r_hat from sink particle to each cell
+				r_hat = (x[i], y[i], z[i])/r[i] # cells x 3 matrix.
+				dot_r_hat_l_hat = abs(r_hat[0]*l_hat[0]+r_hat[1]*l_hat[1]+r_hat[2]*l_hat[2])
+				#neg_dot_r_hat_l_hat = abs(r_hat[0]*-1.0*l_hat[0]+r_hat[1]*-1.0*l_hat[1]+r_hat[2]*-1.0*l_hat[2])
+				if( dot_r_hat_l_hat > jet_open_angle):
+					# Inside the Jet opening angle, don't use u_r
+					continue
 			mbin[index] = mbin[index] + cellMass[i]
 			# Now calculate the angular momentum of cell i (technically just r x v here)
 			lx[i] = y[i]*vz[i] - vy[i]*z[i]
@@ -424,27 +431,39 @@ def getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, curr
 			continue
 		index = int((math.log10(r[i]/parsec)-lgradiusMin)*bins/(lgradiusSph - lgradiusMin))
 		if(index >= 0 and index < bins) :
+			if( args.jet) :
+				# x[i],y[i],z[i] are already determined as the distance from sink to that cell i
+				# and r[i] is the mag of that vector distance.
+				#The jet is pushing out ~1/3 of the mass.
+				# Calculate the r_hat from sink particle to each cell
+				r_hat = (x[i], y[i], z[i])/r[i] # cells x 3 matrix.
+				dot_r_hat_l_hat = abs(r_hat[0]*l_hat[0]+r_hat[1]*l_hat[1]+r_hat[2]*l_hat[2])
+				#neg_dot_r_hat_l_hat = abs(r_hat[0]*-1.0*l_hat[0]+r_hat[1]*-1.0*l_hat[1]+r_hat[2]*-1.0*l_hat[2])
+				if( dot_r_hat_l_hat > jet_open_angle):
+					# Inside the Jet opening angle, don't use u_r
+					continue
+
 			Ixx = (y[i]*y[i] + z[i]*z[i]) * cellMass[i]
 			Iyy = (x[i]*x[i] + z[i]*z[i]) * cellMass[i]
 			Izz = (x[i]*x[i] + y[i]*y[i]) * cellMass[i]
 			Ixy = -x[i]*y[i] * cellMass[i]
 			Ixz = -x[i]*z[i] * cellMass[i]
-			Iyx = Ixy
+				#Iyx = Ixy
 			Iyz = -y[i]*z[i] * cellMass[i]
-			Izx = Ixz
-			Izy = Iyz
+				#Izx = Ixz
+				#Izy = Iyz
 			Ixxbin[index] = Ixxbin[index] + Ixx
 			Iyybin[index] = Iyybin[index] + Iyy
 			Izzbin[index] = Izzbin[index] + Izz
 			Ixybin[index] = Ixybin[index] + Ixy
 			Ixzbin[index] = Ixzbin[index] + Ixz
-			Izybin[index] = Izybin[index] + Izy
+			Iyzbin[index] = Iyzbin[index] + Iyz
 #	import speedup
 #	Ixxbin, Iyybin, Izzbin, Ixybin, Ixzbin, Izybin = speedup.moment_of_inertia( r,x,y,z,cellMass,parsec,radiusMin,lgradiusMin,lgradiusSph,bins)
 	# Set these outside the for loop
 	Iyxbin = Ixybin
 	Izxbin = Ixzbin
-	Iyzbin = Izybin
+	Izybin = Iyzbin
 	print "Finished calculating the moment of Inertia elements"
 	ts = time.time()
 	st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
@@ -533,11 +552,23 @@ def getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, curr
 		index = int((math.log10(r[i]/parsec)-lgradiusMin)*bins/(lgradiusSph - lgradiusMin))
 		#index = int(r[i]*bins/(radiusSphere*parsec))
 		if(index >= 0 and index < bins) :
+			if( args.jet) :
+				# x[i],y[i],z[i] are already determined as the distance from sink to that cell i
+				# and r[i] is the mag of that vector distance.
+				#The jet is pushing out ~1/3 of the mass.
+				# Calculate the r_hat from sink particle to each cell
+				r_hat = (x[i], y[i], z[i])/r[i] # cells x 3 matrix.
+				dot_r_hat_l_hat = abs(r_hat[0]*l_hat[0]+r_hat[1]*l_hat[1]+r_hat[2]*l_hat[2])
+				#neg_dot_r_hat_l_hat = abs(r_hat[0]*-1.0*l_hat[0]+r_hat[1]*-1.0*l_hat[1]+r_hat[2]*-1.0*l_hat[2])
+				if( dot_r_hat_l_hat > jet_open_angle):
+					# Inside the Jet opening angle, don't use u_r
+					continue
+
 			mbin[index] = mbin[index] + cellMass[i]
 			nbin[index] = nbin[index] + 1
 			rad = r[i]
 			if( rad < 1e-5) : 
-				 rad = 1e-5
+				rad = 1e-5
 			# Pull out the terms for Omega for this shell
 			Omega_X = Omega[index][0]
 			Omega_Y = Omega[index][1]
@@ -1180,7 +1211,7 @@ def Particle_Reduction(index):
 			Particle_attributes = [xc, yc, zc, vxc, vyc, vzc, lxc, lyc, lzc]
 			fileout="{0}/{1}_{2}_{3}_{4}.out".format(output_location, out_prefix, File_number, compare_file, int(ParticleID))
 			# Finally, pass the appropriate data to the analysis script.
-			if ("particle" in compare_file) or ("bigsphere" in compare_file):
+			if ("particle" in compare_file):# or ("bigsphere" in compare_file):
 				getRadialProfile_yt(pf,xc,yc,zc, vxc, vyc, vzc, fileout, radiusSphere, ParticleMass)
 			else:
 				getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, current_time, fileout, radiusMin, radiusSphere, ParticleMass)
@@ -1306,8 +1337,8 @@ if args.bulk_vel_method in bulk_vel_accepted_strings:
 	if ("shellsphere" == compare_file):
 		Bulk_by_Sphere_in_Shell = True
 	# These are modifications from the default shellsphere settings.
-	elif ("bigsphere" == compare_file): #This goes to yt
-		Bulk_sphere_radius = 3.0
+	elif ("bigsphere" == compare_file):
+		radiusSphere = 5.0
 	elif ('particle' == compare_file): #This goes to yt
 		Bulk_by_Particle = True
 	elif ("smallsphere" == compare_file):

@@ -65,7 +65,7 @@ def Projection_plotting(pf, ParticleID, part_center, zoom_width=2.0):
 		# Does not work as implemented currently
 		p.annotate_magnetic_field()
 	p.set_colorbar_label("Density", "$\\Sigma\\,({\\rm g\\,cm}^{-2})$")
-	fileout="{0}_{1:05d}_{2}_{3}_{4}pc_{5}.{6}".format(plot_out_prefix, i, plot_axis, plot_field, zoom_width, ParticleID, out_format)
+	fileout="{0}_{1:05d}_{2}_{3}_{4}pc_ID{5}.{6}".format(plot_out_prefix, i, plot_axis, plot_field, zoom_width, ParticleID, out_format)
 	print fileout
 	p.save(fileout)
 
@@ -120,7 +120,7 @@ def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
 #		#p.annotate_cquiver('CuttingPlaneVelocityX', 'CuttingPlaneVelocityY', 12)# yt2
 		p.annotate_cquiver('cutting_plane_velocity_x', 'cutting_plane_velocity_y', 20)# yt3
 #		p.annotate_contour("density")
-        fileout="{0}_{1:05d}_{2}_{3}pc_{4}.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format)
+        fileout="{0}_{1:05d}_{2}_ID{3}pc_{4}.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format)
 	print fileout
         p.save(name=fileout)
 
@@ -162,7 +162,7 @@ def Slice(pf, ParticleID, part_center, zoom_width=2.0) :
 #		#p.annotate_cquiver('CuttingPlaneVelocityX', 'CuttingPlaneVelocityY', 12)# yt2
 		p.annotate_cquiver('cutting_plane_velocity_x', 'cutting_plane_velocity_y', 20)# yt3
 #		p.annotate_contour("density")
-        fileout="{0}_{1:05d}_{2}_{3}pc_{4}_{6}_slice.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format, Axis_to_plot)
+        fileout="{0}_{1:05d}_{2}_{3}pc_{4}_ID{6}_slice.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format, Axis_to_plot)
 	print fileout
         p.save(name=fileout)
 
