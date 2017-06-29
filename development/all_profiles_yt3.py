@@ -966,7 +966,7 @@ def RAMSES_obtain_individual_part_attributes(pf, index, Particle_ID_list, partMa
 	lzc = lzstar[index]
 	return ParticleID, ParticleMass, xc, yc, zc, vxc, vyc, vzc, lxc, lyc, lzc
 
-def Obtain_Particles(num_var_packed, pf, sinkfile, File_number):#, xc, yc, zc):#, Init_Restart):
+def Obtain_Particles(num_var_packed, pf, sinkfile, File_number, sinkcsvfile):#, xc, yc, zc):#, Init_Restart):
 	global Init_Restart
 	global xc_search
 	global yc_search
@@ -985,6 +985,10 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number):#, xc, yc, zc):#
 	vxstar = 0.0
 	vystar = 0.0
 	vzstar = 0.0
+	lxstar = 0.0
+	lystar = 0.0
+	lzstar = 0.0
+	Particle_age = 0.0
 #	print 'obtaining particles', len( num_var_packed)
 	if len( num_var_packed) == 0 or ( args.point):
 #	if True:	
@@ -1045,7 +1049,13 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number):#, xc, yc, zc):#
 		print len(num_var_packed)
 		print num_var_packed
 		sys.exit()
-	return Particle_ID_list, partMass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar, poly_n, md, polystate, pjet
+	if len( num_var_packed) != 0:
+		# Obtain particle angular momentum from the sink.csv file.
+		# Eventually, we will write this info out into sink_.info as well.
+		# Note that lx, ly and lzstar are in CODE UNITS! particle_age has been converted to s.
+		lxstar, lystar, lzstar, Particle_age = Obtain_Part_info_csv(sinkcsvfile)
+
+	return Particle_ID_list, partMass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar, poly_n, md, polystate, pjet, lxstar, lystar, lzstar, Particle_age
 
 def Obtain_Part_info_csv(sinkcsvfile):
 # From Ramses output_sink.f90 for teh csv file
@@ -1119,11 +1129,8 @@ def Particle_Reduction(index):
 			print pf.all_data()["ramses_magx"]
 
 		Particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
-		    vxstar, vystar, vzstar, poly_n, md, polystate, pjet = Obtain_Particles(num_var_packed, pf, sinkfile, File_number)
-		# Obtain particle angular momentum from the sink.csv file.
-		# Eventually, we will write this info out into sink_.info as well.
-		# Note that lx, ly and lzstar are in CODE UNITS! particle_age has been converted to s.
-		lxstar, lystar, lzstar, Particle_age = Obtain_Part_info_csv(sinkcsvfile)
+		    vxstar, vystar, vzstar, poly_n, md, polystate, pjet, \
+		    lxstar, lystar, lzstar, Particle_age = Obtain_Particles(num_var_packed, pf, sinkfile, File_number, sinkcsvfile)
 #		print lxstar, lystar, lzstar
 #		print Particle_age
 #		sys.exit()
