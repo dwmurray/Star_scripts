@@ -318,7 +318,7 @@ def getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, curr
 			#mbin[index] = mbin[index] + cellMass[i]
 			# This is a volume weighted density. i.e. Calculate the mass
 			# We'll then divide the mass by volbin
-			rhobin[index] = rhobin[index] + cellMass[i]
+			rhobin[index] = rhobin[index] + cellMass[i] #This is actually just a mass, not a density.
 			volbin[index] = volbin[index] + cellVolume[i]
 			# getting a mass weighted speed out of a velocity (Mdot * distance). 
 			#vr = ((vx[i] - vx_bulkvelocity_bin[index])*x[i] + (vy[i] - vy_bulkvelocity_bin[index])*y[i] + (vz[i] - vz_bulkvelocity_bin[index])*z[i])*cellMass[i]/r[i]
@@ -344,7 +344,7 @@ def getRadialProfile_py(pf, Particle_attributes, ParticleID, creation_time, curr
 	vrbin = vrbin/mbin
 	# Check to see if these come out the same:
 	#rhobin = mbin/volbin
-	rhobin = rhobin/volbin
+	rhobin = rhobin/volbin#This converts it properly into a density.
 	
 	# Find the middle radius of the bin
 	lgrbin = lgradiusMin + (lgradiusSph-lgradiusMin)*numpy.arange(bins)/bins

@@ -71,7 +71,6 @@ def Projection_plotting(pf, ParticleID, part_center, zoom_width=2.0):
 
 
 def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
-#	ad = pf.all_data()
 #	sp = pf.h.sphere([xc, yc, zc], (zoom_width + 0.5, "pc"))
 	sp = pf.h.sphere(part_center, (zoom_width + 0.5, "pc"))
 	# Get the angular momentum vector for the sphere.
@@ -80,24 +79,16 @@ def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
 	orthog_to_L_1 = np.array([L[2], L[2], -L[0]-L[1]])
 	orthog_to_L_2 = np.array([L[1], -L[0]-L[2], L[1]])
 #	print L
-#	print len(ad['x-Bfield-right'])
-#	print len(ad['x-Bfield-left'])
-#	x_Bfield = (ad['x-Bfield-right'].in_cgs() + ad['x-Bfield-left'].in_cgs()) *0.5
-#	print x_Bfield
-##	print ad['y-Bfield-right']
-#	print ad['y-Bfield-left']
-#	print ad['z-Bfield-right']
-#	print ad['z-Bfield-left']
-
-	#print np.dot(L, orthog_to_L_1)
-	#print np.dot(L, orthog_to_L_2)
+#	print np.dot(L, orthog_to_L_1)
+#	print np.dot(L, orthog_to_L_2)
 
 	# What axis do we plot along?
 	Axis_to_plot = L
 #	Axis_to_plot = 'z'
+
 	# What field do we want to plot?
 	plot_field = 'density'
-	#plot_field = 'VelocityMagnitude'
+#	plot_field = 'VelocityMagnitude'
 
 #	p = yt.OffAxisSlicePlot(pf, Axis_to_plot, plot_field, center=sp.center, width=(zoom_width, "pc"))
 	p = yt.OffAxisSlicePlot(pf, Axis_to_plot, plot_field, center=part_center, width=(zoom_width, "pc"))
@@ -105,8 +96,8 @@ def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
 	p.set_zlim("density", 1e-23,1e-14)
 	p.set_font({'size':25})
 
-	if( args.magnetic) :
-		p.annotate_magnetic_field()
+#	if( args.magnetic) :
+		#p.annotate_magnetic_field()
 	if(withArrows):
 		#p.annotate_velocity(factor=16)
 #		#v_vector_bulk=pf.h.disk([xc, yc, zc], Axis_to_plot, (1e-2, "pc"), (0.001, "pc")).quantities["BulkVelocity"]()
@@ -120,7 +111,8 @@ def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
 #		#p.annotate_cquiver('CuttingPlaneVelocityX', 'CuttingPlaneVelocityY', 12)# yt2
 		p.annotate_cquiver('cutting_plane_velocity_x', 'cutting_plane_velocity_y', 20)# yt3
 #		p.annotate_contour("density")
-        fileout="{0}_{1:05d}_{2}_ID{3}pc_{4}.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format)
+	#fileout="{0}_{1:05d}_{2}_ID{3}pc_{4}.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format)
+	fileout="{0}_ID{4}_{2}_{3}pc_{6}_{7}_{1:05d}.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format, Axis_to_plot, snap)
 	print fileout
         p.save(name=fileout)
 
@@ -162,7 +154,7 @@ def Slice(pf, ParticleID, part_center, zoom_width=2.0) :
 #		#p.annotate_cquiver('CuttingPlaneVelocityX', 'CuttingPlaneVelocityY', 12)# yt2
 		p.annotate_cquiver('cutting_plane_velocity_x', 'cutting_plane_velocity_y', 20)# yt3
 #		p.annotate_contour("density")
-        fileout="{0}_{1:05d}_{2}_{3}pc_{4}_ID{6}_slice.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format, Axis_to_plot)
+	fileout="{0}_ID{4}_{2}_{3}pc_{6}_{7}_{1:05d}.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format, Axis_to_plot, snap)
 	print fileout
         p.save(name=fileout)
 
@@ -206,8 +198,12 @@ withPDF = args.pdf
 prefix = 'output'
 plot_out_prefix = 'movieframe'
 
-
-
+if (args.offslice):
+	snap = 'offslice'
+elif(args.slice):
+	snap = 'slice'
+elif(args.projection):
+	snap = 'projection'
 
 if (withPDF):
 	out_format = 'pdf'
@@ -247,9 +243,8 @@ for i in range(args.start,args.end,args.step) :
 		ParticleID, ParticleMass, xc, yc, zc = particle_ID_locations(sinkfile, current_item)
 		part_center = yt.YTArray([xc, yc, zc], 'cm')
 		print 'particle location', part_center
-#		ad = pf.all_data()
-#		sys.exit()
 		if ParticleID == withParticleIDValue or withAllParticles:
+
 			if (withProjection):
 				Projection_plotting(pf, ParticleID, part_center, zoom_width)
 			elif (withSlice):
