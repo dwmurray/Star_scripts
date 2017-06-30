@@ -117,6 +117,7 @@ for timestep in range(args.start,args.end,args.step) :
 		print 'setting'
 		start_time = current_time
 	Particle_Age = Particle_Age * scale_t
+	print File_number
 	print current_time
 	print start_time
 	print current_time - start_time
