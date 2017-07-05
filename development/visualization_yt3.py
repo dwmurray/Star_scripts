@@ -103,7 +103,7 @@ def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
 #		#v_vector_bulk=pf.h.disk([xc, yc, zc], Axis_to_plot, (1e-2, "pc"), (0.001, "pc")).quantities["BulkVelocity"]()
 		v_vector_bulk=pf.h.sphere(part_center, (2e-2, "pc")).quantities["BulkVelocity"]()
 		p = yt.OffAxisSlicePlot(pf, Axis_to_plot, plot_field, sp.center, (zoom_width, "pc"), field_parameters={"bulk_velocity": v_vector_bulk})
-		p = yt.SlicePlot(ds, 'x', "density", width = (800.0, 'kpc'))
+		#p = yt.SlicePlot(ds, 'x', "density", width = (800.0, 'kpc'))
 
 #		#p.set_zlim("Density", 1e-23,1e-14
 		p.set_cmap(field="density", cmap='bds_highcontrast')
@@ -112,7 +112,7 @@ def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
 		p.annotate_cquiver('cutting_plane_velocity_x', 'cutting_plane_velocity_y', 20)# yt3
 #		p.annotate_contour("density")
 	#fileout="{0}_{1:05d}_{2}_ID{3}pc_{4}.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format)
-	fileout="{0}_ID{4}_{2}_{3}pc_{6}_{7}_{1:05d}.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format, Axis_to_plot, snap)
+	fileout="{0}_ID{4}_{2}_{3}pc_{6}_{7}_{1:05d}.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format, 'L', snap)
 	print fileout
         p.save(name=fileout)
 

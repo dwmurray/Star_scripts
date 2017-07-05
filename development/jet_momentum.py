@@ -111,7 +111,7 @@ for timestep in range(args.start,args.end,args.step) :
 		#print "If you want to plot a particle before its formation, use the flag --noparticle."
 		continue #return
 	pf = yt.load(infofile) #Current time is loaded in COde
-	current_time = np.float64(pf.current_time) * scale_t / yr
+	current_time = np.float64(pf.current_time) / yr
 	if not Init_parts:
 		Init_parts = True
 		print 'setting'
@@ -122,13 +122,20 @@ for timestep in range(args.start,args.end,args.step) :
 	print start_time
 	print current_time - start_time
 
-        timestep_particles = len(particle_list)
+	try:
+		timestep_particles = len(particle_list)
+	except TypeError:
+		timestep_particles = 1
+		part_pjet = np.array([part_pjet])
+		part_masses = np.array([part_masses])
 	time_step_m = 0
 	time_step_p = 0
+	print part_masses
+	print part_pjet
         for index in range(timestep_particles):
-            jet_mass = 0.5 *part_masses[index]
+            stellar_mass = part_masses[index]
             pjet = part_pjet[index]
-#            jet_mass = 0.5 * stellar_mass # solar masses.
+            jet_mass = 0.5 * stellar_mass # solar masses.
 #	    vjet = pjet / jet_mass # km/s
 
 	    time_step_m = time_step_m + jet_mass
@@ -141,7 +148,8 @@ for timestep in range(args.start,args.end,args.step) :
 	time.append(current_time - start_time)
 	total_avg_v.append(avg_v)
 
-np.savetxt('jet_momentum.txt', zip(time-start_time, total_avg_v), fmt="%15.9E")
+
+np.savetxt('jet_momentum.txt', zip(time, total_avg_v), fmt="%15.9E")
 
 plt.loglog(time, total_avg_v, 'b-', label='$u_r$')
 #plt.ylim(1e-1, 1e2)
