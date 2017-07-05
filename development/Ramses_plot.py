@@ -86,7 +86,7 @@ def Velocity_plot(rbin, vrbin, vrmsbin, vmagbin, vKbin, vphi_magbin, sum_velocit
 	#print power_law_fit
 	#sys.exit()
 	plt.axhline( c_s/1e5, color = 'black',label='$c_s$')  
-	plt.ylim(5e-3, 3e1)
+	plt.ylim(1e-2, 3e0)
 	plt.xlim(3e-3, 3e0)
 	plt.ylabel(r'$u_r, \, v_T, \, v_K, \, v_\phi, \, c_s$ $({\rm km\, s}^{-1})$', fontsize = 25)
 	plt.xlabel(r'$r$ $({\rm pc})$', fontsize=25)
@@ -100,6 +100,14 @@ def Turbulent_velocity_plot(rbin, vrmsbin, vrms_r_bin, vrms_l_bin):
 	plt.ylim(1e-1, 3e0)
 	plt.xlim(3e-3, 3e0)
 	plt.ylabel(' $v_T, \\, v_{T,r}, \\, v_{T,l}$ $({\\rm km\\, s}^{-1})$', fontsize=25)
+	plt.xlabel('$r$ $(\\rm pc)$', fontsize=25)
+
+def Magnetic_vs_radius(rbin, Btotbin):
+	plt.loglog( rbin, Btotbin*Btotbin/(8.*np.pi), 'b', label='$B_{tot}^2 / 8 \pi$', lw = 2)  
+	plt.legend(loc=0, fontsize=22, frameon=False)
+#	plt.ylim(1e-1, 3e0)
+#	plt.xlim(3e-3, 3e0)
+	plt.ylabel(' $B$ $({\\rm gauss })$', fontsize=25)
 	plt.xlabel('$r$ $(\\rm pc)$', fontsize=25)
 	
 def Density_plot(rbin, rhobin):
@@ -149,7 +157,7 @@ def Total_mass_plot(rbin, mTbin):
 def Mdot_plot(rbin, py_mdot, mdotbin):
 #	plt.loglog( rbin, -4.0*pi*rhobin*vrbin*(parsec*rbin)**2*yr/Msun) 
 	plt.loglog( rbin, py_mdot) 
-	plt.loglog( rbin, mdotbin) 
+	#plt.loglog( rbin, mdotbin*yr/Msun) 
 	plt.xlim(3e-3, 3e0)
 	plt.ylim(1e-6, 1e-2)
 	plt.ylabel(r'$\dot{M}$ $({\rm M_{\odot}\, yr}^{-1})$', fontsize=25)
@@ -410,6 +418,16 @@ def Update_avg_value_list(filein, particle_ID, File_number, deltaM):
 	Particle_in_List = False
 	#load in everything here, again, mostly to not pass in everything through the arguement list
 	rbin, vrbin, vrmsbin, vrmsnbin, vKbin, vmagbin, vmagnbin, mTbin, rhobin, mdotbin, norm, angXbin, angYbin, angZbin, vphi_magbin, sum_velocities, particleMass, creation_time, current_time, vrms_r_bin, vrms_l_bin, vrms_theta_bin, vrms_phi_bin = np.loadtxt(filein, unpack=True)
+	vrbin = np.nan_to_num(vrbin)
+#	print vrbin
+#	print ""
+	vrbin = np.clip(vrbin,a_min=None,a_max=0)
+#	print vrbin
+
+	vrmsbin = np.nan_to_num(vrmsbin)
+	vphi_magbin = np.nan_to_num(vphi_magbin)
+	vKbin = np.nan_to_num(vKbin)
+	rhobin = np.nan_to_num(rhobin)
 	if Particles_Used == []:
 		Particles_Used.append([particle_ID, File_number, deltaM, particleMass, rbin, vrbin, vrmsbin, vKbin, vmagbin, mTbin, rhobin, mdotbin, vphi_magbin, sum_velocities, vrms_r_bin, vrms_l_bin, vrms_theta_bin, vrms_phi_bin])
 	else:
@@ -428,9 +446,14 @@ def Obtain_avg_value():
 	""" This function calculates the average and standard deviation.
 	"""
 	global sigma
-
+	avg_IDs = []
+	avg_filenums = []
 	particle_count = len(Particles_Used)
-	means = ['IDs', 'Files']
+	for ob_ID in range(particle_count):
+		if Particles_Used[ob_ID][0] not in avg_IDs:
+			avg_IDs.append(Particles_Used[ob_ID][0])
+			avg_filenums.append(Particles_Used[ob_ID][1])
+	means = [avg_IDs, avg_filenums]
 #	print 'particle count', particle_count
 #	print 'size in table for each particle', len(Particles_Used[0])
 	#Particles_Used.append([particle_ID[0], File_number[1], deltaM[2], particleMass[3], rbin[4], vrbin[5], vrmsbin[6], vKbin[7], vmagbin[8], mTbin[9], rhobin[10], mdotbin[11], vphi_magbin[12], sum_velocities[13], vrms_r_bin[14], vrms_l_bin[15], vrms_theta_bin[16], vrms_phi_bin[17]])
@@ -463,7 +486,7 @@ parser.add_argument('ParticleID', metavar='N4', type=int, nargs='?', default=0,
 		    help='Particle ID you want to reduce, use 0 for no particle density peak.')
 parser.add_argument('bulk_vel_method', metavar='N5', type=str, nargs='?', default='shellsphere',
 		    help='method of removing the bulk motion of the gas. Options are: shellsphere, bigsphere, smallsphere, particle, shell.')
-parser.add_argument('center_mass_4avg', metavar='N6', type=float, nargs='?', default=1,
+parser.add_argument('center_mass_4avg', metavar='N6', type=float, nargs='?', default=1.0,
 		    help='Mass you want to average around, in solar masses. Default is 1.')
 
 parser.add_argument('--noparticle', action='store_true')
@@ -479,10 +502,14 @@ parser.add_argument('--mdot', action='store_true')
 parser.add_argument('--mass', action='store_true')
 parser.add_argument('--angmv', action='store_true')
 parser.add_argument('--pressure', action='store_true')
+parser.add_argument('--magnetic', action='store_true')
 parser.add_argument('--Q', action='store_true')
+parser.add_argument('--pjet', action='store_true')
 #Want to plot rstar?
 parser.add_argument('--rstar', action='store_true')
 parser.add_argument('--pdf', action='store_true')
+parser.add_argument('--nan', action='store_true')
+
 
 args = parser.parse_args()
 global Init_matplotParams
@@ -514,7 +541,7 @@ c_s = 2.64e4
 # This has to do with calculating the sphere of influence
 gas_to_particle_ratio = 3.0
 plotting_list = []
-accepted_plotting_list = ['velocity', 'turbulent', 'toomreQ', 'veldens', 'density', 'angmomentum', 'pressure', 'mass', 'mdot']
+accepted_plotting_list = ['velocity', 'turbulent', 'toomreQ', 'veldens', 'density', 'angmomentum', 'pressure', 'mass', 'mdot']#, 'magnetic']
 if args.allplots:
 	plotting_list = accepted_plotting_list
 else:
@@ -537,6 +564,8 @@ else:
 		plotting_list.append('mass')
 	if ( args.mdot):
 		plotting_list.append('mdot')
+	if ( args.magnetic):
+		plotting_list.append('magnetic')
 if plotting_list == []:
 	print "You have not selected the plots to create."
 	print "Possible plots include: ", accepted_plotting_list
@@ -557,6 +586,7 @@ else:
 #
 if (args.avg):
 	args.allparticles = True
+	args.nan = True
 #	tot_vr = 0
 #	tot_vrms = 0
 #	tot_density = 0
@@ -580,6 +610,9 @@ for timestep in range(args.start,args.end,args.step) :
 		print "The sink file for timestep", File_number, "is missing."
 		continue #return
 	try :
+#		if args.pjet:
+#			particle_list, part_masses, part_pjet = np.loadtxt( sinkfile, usecols=[0,1,12], unpack=True, skiprows=3, comments="=")
+#		else:
 		particle_list = np.loadtxt( sinkfile, usecols=[0], unpack=True, skiprows=3, comments="=")
 	except UserWarning :
 		print 'Sink file is empty'
@@ -587,8 +620,10 @@ for timestep in range(args.start,args.end,args.step) :
 			particle_list = np.array([int(args.ParticleID)])
 		else :
 			print 'The sinkfile is empty and you have not requested to plot max density location.'
-			print "If you want to, use the flag --noparticle."
+			print "If you want to plot a particle before its formation, use the flag --noparticle."
 			continue #return
+	if (args.noparticle):
+		particle_list = np.array([int(args.ParticleID)])
 	if particle_list.size == 1:
 		particle_list  = np.array([particle_list])
 	print "Plotting Timestep:", File_number
@@ -610,6 +645,14 @@ for timestep in range(args.start,args.end,args.step) :
 		else :
 			continue
 		print "Plotting particle", j+1, 'of', len(particle_list)
+		if( args.magnetic) :
+			print filein[:-4] + 'magnetic.out'
+			magfile = filein[:-4] + 'magnetic.out'
+			if not glob.glob(magfile):
+				print "requesting the magnetic field, but the file does not exist."
+				sys.exit()
+#				continue
+			Bxbin, Bybin, Bzbin, Btotbin = np.loadtxt(magfile, unpack=True)
 #		pf = yt.load(infofile)
 #		current_time = pf.current_time
 		# If the output file in question exists, we then unpack
@@ -685,6 +728,8 @@ for timestep in range(args.start,args.end,args.step) :
 				Total_mass_plot(rbin, mTbin)
 			elif 'mdot' == plotting_list[i] :
 				Mdot_plot(rbin, py_mdot, mdotbin)
+			elif 'magnetic' == plotting_list[i] :
+				Magnetic_vs_radius(rbin, Btotbin)
 			png_save(fileout)
 
 #If we are not averaging, then we're done.
@@ -699,9 +744,11 @@ if( args.avg) :
 		print plotting_list[i]
 		Setup_plot_window()
 		fileout = "avg_{0}_{1}Msun_{2}_{3}_sinks.{4}".format(plotting_list[i], center_mass_4_avg, compare_file, len(Particles_Used), output_format)
+		savefileout = "avg_{0}_{1}Msun_{2}_{3}_sinks.txt".format(plotting_list[i], center_mass_4_avg, compare_file, len(Particles_Used), output_format)
 		if 'velocity' == plotting_list[i] :
 			#Velocity_plot(rbin, vrbin, vrmsbin, vmagbin, vKbin, vphi_magbin, sum_velocities, MC15_velocity)
 			Velocity_plot(means[4], means[5], means[6], means[8], means[7], means[12], means[13], np.sqrt(means[6]*means[6] + means[12]*means[12]))
+			np.savetxt(savefileout, zip(means[4], means[5], means[6], means[8], means[7], means[12]), fmt="%15.9E")
 		elif 'turbulent' == plotting_list[i] :
 			#Turbulent_velocity_plot(rbin, vrmsbin, vrms_r_bin, vrms_l_bin)
 			Turbulent_velocity_plot(means[4], means[6], means[14], means[15])
@@ -714,6 +761,7 @@ if( args.avg) :
 		elif 'density' == plotting_list[i] :
 			#Density_plot(rbin, rhobin)
 			Density_plot(means[4], means[10])
+			np.savetxt(savefileout, zip(means[4], means[10]), fmt="%15.9E")
 		elif 'angmomentum' == plotting_list[i] :
 			#Ang_moment_plot(rbin, vphi_magbin)
 			Ang_moment_plot(means[4], means[12])
@@ -725,8 +773,10 @@ if( args.avg) :
 			#Total_mass_plot(rbin, mTbin)
 			Total_mass_plot(means[4], means[9])
 		elif 'mdot' == plotting_list[i] :
-			#Mdot_plot(rbin, py_mdot, mdotbin)
 			Mdot_plot(means[4], -4.0*pi*means[10]*means[5]*(parsec*means[4])**2*yr/Msun, means[11])
+			np.savetxt(savefileout, zip(means[4], -4.0*pi*means[10]*means[5]*(parsec*means[4])**2*yr/Msun), fmt="%15.9E")
+			#np.savetxt(savefileout, zip(means[4], -1.0*yr*means[11]/Msun), fmt="%15.9E")
 		png_save(fileout)
 	print 'The Avg Particle mass', means[3][0]
 	print 'The mean deltaM from ', center_mass_4_avg, ' : ', means[2]
+	print 'Particles Used', zip(means[0], means[1])

@@ -32,10 +32,11 @@ def shu_solution( x0, x1, v0, alpha0 ) :
 	return xs, vs, alphas
 
 import argparse
-parser = argparse.ArgumentParser(description = "start number to end number, stride length, reduction method")
+parser = argparse.ArgumentParser(description = "What do you want to plot?")
 parser.add_argument('--fit', action='store_true')
 parser.add_argument('--mdot', action='store_true')
 parser.add_argument('--density', action='store_true')
+parser.add_argument('--shu', action='store_true')
 args = parser.parse_args()
 
 mp = 1.6e-24
@@ -43,12 +44,22 @@ Msun = 2e33
 # rhobin is in number density
 if args.density:
     value = 'density'
+    files = ['avg_{0}_1.0Msun_shellsphere_36_sinks.txt'.format(value), 'avg_{0}_4.0Msun_shellsphere_30_sinks.txt'.format(value), 'avg_density_by_hand_shellsphere_80kyr.txt'], 'avg_density_by_hand_shellsphere_40kyr.txt']
+    labels = ["$1.0 M_\odot$", "$4.0 M_\odot$","-80 kyr", "-40 kyr"]
+    ltypes = ["solid", "solid", "-", "-."]
+    lweights = [2, 4, 1, 1]
+
 if args.mdot:
     value = 'mdot'
-files = ['avg_{0}_1.0Msun_shellsphere_36_sinks.txt'.format(value), 'avg_{0}_4.0Msun_shellsphere_30_sinks.txt'.format(value)]
-labels = ["$1.0 M_\odot$", "$4.0 M_\odot$"]
-ltypes = ["solid", "solid"]
-lweights = [2, 2]
+    files = ['avg_{0}_1.0Msun_shellsphere_36_sinks.txt'.format(value), 'avg_{0}_4.0Msun_shellsphere_30_sinks.txt'.format(value), \
+		     '../nojet/avg_{0}_1.0Msun_shellsphere_9_sinks.txt'.format(value), '../nojet/avg_{0}_4.0Msun_shellsphere_23_sinks.txt'.format(value), \
+		     'avg_mdot_by_hand_shellsphere_80kyr.txt'], 'avg_density_by_hand_shellsphere_40kyr.txt']
+    labels = ["$Jet \, 1.0 M_\odot$", "$Jet \, 4.0 M_\odot$", \
+		      "$No \, Jet \, 1.0 M_\odot$", "$No \, Jet \, 4.0 M_\odot$", \
+		      "$Jet \, -80 kyr$", "$Jet \, -40 kyr$"]
+    ltypes = ["solid", "solid", "dashed", "dashed", "-.", "-."]
+    lweights = [2, 4, 2, 4, 2, 4]
+
 
 plt.rc("text", usetex=True)
 plt.rc('font', family='serif')
@@ -72,10 +83,11 @@ for file, label, ltype, lw in zip(files,labels,ltypes,lweights):
     lr = np.log10(rbin)
     lavg = np.log10(avgbin)
 
-    lr_min = np.log10(5.0e-3)
+    lr_min = np.log10(2.0e-2)
+    lr_max = np.log10(1.0e0)
     if args.fit:
         if True:
-            lr_max = np.log10(4.0e-1)
+
             lr_mask = lr[lr>lr_min]
             lavg_mask = lavg[lr>lr_min]
             p = np.polyfit( lr_mask[lr_mask<lr_max], lavg_mask[lr_mask<lr_max], 1)
@@ -89,21 +101,28 @@ for file, label, ltype, lw in zip(files,labels,ltypes,lweights):
             plt.loglog(rbin, avgbin, linewidth=lw,label="{0} $\\alpha_1={1:2.3f}$".format(label, -1.0*p[0]),ls=ltype)
     #    plt.loglog(rbin, avgbin, linewidth=lw,label="{0} $\\alpha_1={1}$".format(label, '7'),ls=ltype)
     else:
-        plt.loglog(rbin, avgbin, linewidth=lw,label="{0}".format(label),ls=ltype)
-
+	    if label =='$Jet \, 1.0 M_\odot$':
+		    plt.loglog(rbin, avgbin, color='r', linewidth=lw,label="{0}".format(label),ls=ltype)
+	    elif label == '$No \, Jet \, 1.0 M_\odot$':
+		    plt.loglog(rbin, avgbin, color='r', linewidth=lw,label="{0}".format(label),ls=ltype)
+	    else:
+		    plt.loglog(rbin, avgbin, color='b', linewidth=lw,label="{0}".format(label),ls=ltype)
 if args.density:
     plt.ylabel('$N$ $({\\rm cm^{-3}})$', fontsize=25)
 if args.mdot:
     plt.ylabel('$\dot{M}$ $({\\rm M_\odot \, yr^{-1}})$', fontsize=25)
-    for A in np.arange( 2.001, 20., 1.) :
-	x0 = 100.
-	alpha0 = A/x0**2 - A*(A-2.)/(2.*x0**4) 
-	v0 = -(A-2.)/x0 - ( 1. - A/6.)*(A-2.)/x0**3
-	cs = 2.65e4
-	x, v, alpha = shu_solution( x0, 0.01, v0, alpha0) 
-	mdot = -cs**3./6.67e-8*x*x* alpha* v/2e33*3.15e7
-	if A == 4.001:
-            plt.loglog( x, mdot, label="A={0}".format(A), linestyle='-' )
+    plt.ylim(1e-6, 1e-3)
+    if args.shu:
+	    for A in np.arange( 2.001, 7., 0.5) :
+		    x0 = 10.
+		    alpha0 = A/x0**2 - A*(A-2.)/(2.*x0**4) 
+		    v0 = -(A-2.)/x0 - ( 1. - A/6.)*(A-2.)/x0**3
+		    cs = 2.65e4
+		    x, v, alpha = shu_solution( x0, 0.001, v0, alpha0) 
+		    mdot = -cs**3./6.67e-8*x*x* alpha* v/2e33*3.15e7
+		    if A == 3.501:
+			    #		plt.loglog( x, mdot, ls='-', label="A={0}".format(A))
+			    plt.loglog( x, mdot, color='g', ls='dashdot', label="Shu".format(A))
 
 
 plt.xlabel('$r$ $({\\rm pc})$', fontsize=25)

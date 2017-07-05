@@ -990,7 +990,7 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number, sinkcsvfile):#, 
 	lzstar = 0.0
 	Particle_age = 0.0
 #	print 'obtaining particles', len( num_var_packed)
-	if len( num_var_packed) == 0 or ( args.point):
+	if len( num_var_packed) == 0 or ( args.point) or ( Flag_backwards) or args.maxdensity:
 #	if True:	
 		dd = pf.all_data()
 		if ( args.maxdensity):
@@ -999,8 +999,9 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number, sinkcsvfile):#, 
 			# It then continues as if we have just a single particle in this file.
 			print 'Finding max density location.'
 			max= dd.quantities["MaxLocation"]("Density")
-		elif ( args.backwards):
+		elif ( Flag_backwards):
 			#This is the case if we are tracking a particle backwards
+			print 'Searching for Particle location.'
 			Particle_ID_list = numpy.float64(withParticleIDValue)
 			if ( withRestart and Init_Restart):
 				#Restarted the run, read from particle location file.
@@ -1018,7 +1019,7 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number, sinkcsvfile):#, 
 			print 'Backwards search location: xc, yc, zc:', xc_search, yc_search, zc_search
 			sp = pf.sphere(YTArray( [xc_search, yc_search, zc_search], "cm"), (0.5, 'pc'))
 			max = sp.quantities["MaxLocation"]("Density")
-		else:
+		elif ( args.point):
 			Particle_ID_list = numpy.float64(withParticleIDValue)
 			print 'looking at hardcoded specified point for testing.'
 			xc_search = 2.38813134766e+19
@@ -1054,7 +1055,11 @@ def Obtain_Particles(num_var_packed, pf, sinkfile, File_number, sinkcsvfile):#, 
 		# Eventually, we will write this info out into sink_.info as well.
 		# Note that lx, ly and lzstar are in CODE UNITS! particle_age has been converted to s.
 		lxstar, lystar, lzstar, Particle_age = Obtain_Part_info_csv(sinkcsvfile)
-
+		if Flag_backwards or args.maxdensity:
+			lxstar = 0.0
+			lystar = 0.0
+			lzstar = 0.0
+			Particle_age = 0.0 # This can be calculated #To Do
 	return Particle_ID_list, partMass, r_star, xstar, ystar, zstar, vxstar, vystar, vzstar, poly_n, md, polystate, pjet, lxstar, lystar, lzstar, Particle_age
 
 def Obtain_Part_info_csv(sinkcsvfile):
@@ -1077,6 +1082,10 @@ def Obtain_Part_info_csv(sinkcsvfile):
 ###########################################################
 
 def Particle_Reduction(index):
+	global Flag_backwards
+	global xc_search
+	global yc_search
+	global zc_search
 	# First, check that the required files exist
 	#FLASH
 	if ( withFLASH4):
@@ -1131,18 +1140,15 @@ def Particle_Reduction(index):
 		Particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
 		    vxstar, vystar, vzstar, poly_n, md, polystate, pjet, \
 		    lxstar, lystar, lzstar, Particle_age = Obtain_Particles(num_var_packed, pf, sinkfile, File_number, sinkcsvfile)
-#		print lxstar, lystar, lzstar
-#		print Particle_age
-#		sys.exit()
 		# Now that we've loaded the relevant data, pull out what we require.
 		#Creation time is available in FLASH, not implemented yet for the RAMSES data.
 		creation_time = 0.0
-		current_time = pf.current_time
+		current_time = pf.current_time # This is in cgs
 		#Particle_age = 0.0 # current_time - this_creation_time
 
 		# Now that we have all the information associated with all particles in this timestep,
 		# How are we requested to loop through?
-		if( args.maxdensity):
+		if( args.maxdensity):# or ( args.backwards):
 			Particle_list = 1
 		elif xstar.size == 1:# If there are zero particles, or one, both trigger here.
 			Particle_list = 1
@@ -1164,6 +1170,8 @@ def Particle_Reduction(index):
 				Particle_list = xstar.size
 		for j in range(Particle_list):
 			if Particle_list == 1:
+				print Particle_ID_list
+				print type(Particle_ID_list)
 				if Particle_ID_list == args.ParticleID or (withAllParticles):
 					# This converts to the proper data types needed.
 					ParticleID = int(Particle_ID_list)
@@ -1180,7 +1188,10 @@ def Particle_Reduction(index):
 				else:
 					print 'The ID of the only particle in this timestep does not match the requested ID.'
 					print 'PartID', str(int(Particle_ID_list)) + ', ', 'Requested ID', args.ParticleID
-					continue
+					if not ( args.backwards): 					
+						continue
+					elif (args.backwards):
+						Flag_backwards = True
 			else:
 				#For all and args.first, we start at j = 0
 				if ( args.second):
@@ -1196,24 +1207,38 @@ def Particle_Reduction(index):
 					    RAMSES_obtain_individual_part_attributes(pf, j, Particle_ID_list, \
 					    partMass, xstar, ystar, zstar, vxstar, vystar, vzstar, lxstar, lystar, lzstar)
 				else:
-					continue
-
-			if ( args.backwards):
-				if ( ParticleID == args.ParticleID):
-					# Save the information for the current timestep and particle.
-					# If we need to restart when prior to the particles formation, this will allow us
-					# to jump to the location of its density peak.
-					txt_filename = '{0}/particle_{1}_location.txt'.format(output_location, int(ParticleID))
-					print_to_text_file(txt_filename, File_number, ParticleID, xc, yc, zc, creation_time, current_time, ParticleMass)
-					# If we are tracing backwards update the search coordinates
-					# To center on the particle's current location
-					global xc_search
-					global yc_search
-					global zc_search
-					xc_search = xc
-					yc_search = yc
-					zc_search = zc
+					if not (j + 1 == Particle_list) or not (args.backwards):
+						continue
+					elif (args.backwards):
+						Flag_backwards = True
+			if Flag_backwards:
+				print 'PartIDs', str(Particle_ID_list) + ', ', 'Requested ID', args.ParticleID
+				print 'End of particle list. Requested particle no longer formed.'
+				Particle_ID_list, partMass, r_star, xstar, ystar, zstar, \
+				    vxstar, vystar, vzstar, poly_n, md, polystate, pjet, \
+				    lxstar, lystar, lzstar, Particle_age = Obtain_Particles(num_var_packed, pf, sinkfile, File_number, sinkcsvfile)
+				ParticleID = int(Particle_ID_list)
+				ParticleMass = partMass
+				xc = pf.quan(xstar, "cm")
+				yc = pf.quan(ystar, "cm")
+				zc = pf.quan(zstar, "cm")
+				vxc = vxstar
+				vyc = vystar
+				vzc = vzstar
+				lxc = lxstar
+				lyc = lystar
+				lzc = lzstar
+				# Save the information for the current timestep and particle.
+				# If we need to restart when prior to the particles formation, this will allow us
+				# to jump to the location of its density peak.
+				txt_filename = '{0}/particle_{1}_location.txt'.format(output_location, int(ParticleID))
+				print_to_text_file(txt_filename, File_number, ParticleID, xc, yc, zc, creation_time, current_time, ParticleMass)
 			print 'Particle Coordinates', xc, yc, zc
+			# If we are tracing backwards update the search coordinates
+			# To center on the particle's current location
+			xc_search = xc
+			yc_search = yc
+			zc_search = zc
 			#Package up the Particle Attributes to pass to Radial Profiles.
 			Particle_attributes = [xc, yc, zc, vxc, vyc, vzc, lxc, lyc, lzc]
 			fileout="{0}/{1}_{2}_{3}_{4}.out".format(output_location, out_prefix, File_number, compare_file, int(ParticleID))
@@ -1226,6 +1251,7 @@ def Particle_Reduction(index):
 				print 'Finished Analysing particle:', j + 1, 'of:', xstar.size, 'in File:', cwd, '/{0}{1:04d}'.format(plt_prefix, index)
 			else:
 				print 'Finished Analysing particle:', j + 1, 'of:', xstar.size, 'in Folder:', cwd, '/output_{0:05d}'.format(index)
+				print fileout
 	# After looping through all particles in this time step.
 	return
 
@@ -1296,10 +1322,12 @@ logRhoMin = -3.0
 
 alpha_jet = 1.0 # Fudge factor for the opening angle of the jet range it 0.9 to 1.1
 # theta0_jet=0.3d0 # From RAMSES jet_parameters.f90 #Note radians
-theta_jet = 0.3
+theta_jet = 0.3 #radians
 jet_open_angle = math.cos( alpha_jet * theta_jet) #math.cos expects radians.
 print 'jet open angle', jet_open_angle
 #sys.exit()
+global Flag_backwards
+Flag_backwards = False # This flag is set to true if we are tracing backwards and have moved to before the particle forms.
 #Depending on if we are reducing the data on scinet or another location, choose the output file path accordingly
 cwd = os.getcwd()
 output_location = cwd + '/python_output'
@@ -1385,7 +1413,6 @@ if (withTrackBackwards):
 		global Init_Restart
 		Init_Restart = True
 	for i in range(args.end-1, args.start-1, -args.step) :
-		print 'looping'
 		Particle_Reduction(i)
 		print "finished reduction on ", i
 else: #Step forward in time and reduce particles
