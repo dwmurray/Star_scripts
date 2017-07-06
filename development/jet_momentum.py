@@ -135,10 +135,9 @@ for timestep in range(args.start,args.end,args.step) :
         for index in range(timestep_particles):
             stellar_mass = part_masses[index]
             pjet = part_pjet[index]
-            jet_mass = 0.5 * stellar_mass # solar masses.
 #	    vjet = pjet / jet_mass # km/s
 
-	    time_step_m = time_step_m + jet_mass
+	    time_step_m = time_step_m + stellar_mass # Matzner & McKee 2000. define to use the final stellar mass
 	    time_step_p = time_step_p + pjet
 #	    time_step_v = time_step_v + vjet
 	avg_v = time_step_p / time_step_m # mass weighted velocity.
