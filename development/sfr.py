@@ -8,6 +8,23 @@ import yt
 import numpy
 import matplotlib.pyplot as pl
 import math
+from matplotlib import rcParams
+
+# Setup plot tick marks to match the other run of __ plots.
+pl.rc("text", usetex=True)
+pl.rc('font', family='serif')
+rcParams.update({'figure.autolayout': True})
+rcParams['axes.linewidth']    = 2
+rcParams['lines.linewidth']   = 2
+rcParams['xtick.major.width'] = 3    # major tick width in points
+rcParams['xtick.major.size']  = 14    # major tick width in points
+rcParams['xtick.minor.size']  = 8    # major tick width in points
+rcParams['xtick.minor.width'] = 2    # major tick width in points
+rcParams['ytick.major.width'] = 3    # major tick width in points
+rcParams['ytick.minor.width'] = 2    # major tick width in points
+rcParams['ytick.major.size']  = 14    # major tick width in points
+rcParams['ytick.minor.size']  = 8    # major tick width in points
+rcParams['xtick.labelsize']   = 25
 
 parser = argparse.ArgumentParser(description = "start number to end number")
 
@@ -17,26 +34,12 @@ parser.add_argument('step', metavar='N3', type=int)
 parser.add_argument('--kink', action='store_true')
 args = parser.parse_args()
 
-#dirs = ["ultrares/jet", "ultrares/nojet", "highres/jet", "highres/nojet", "medres/jet", "medres/nojet"]
-#labels = ["$32K^3$ jet", "no jet", "$16K^3$ jet", "no jet", "$8K^3$ jet", "no jet"]
-#ltypes = ["solid", "dashed", "solid", "dashed", "solid", "dashed"]
-#lweights = [6, 6, 4, 4, 2, 2]
-#
-#dirs = ["ramses-mhd/mhd2", "ramses-jet/highres/nojet"]
-#labels = ["$16K^3$, mhd", "$16K^3$"]
-#ltypes = ["solid", "dashed"]
-#lweights = [4, 2]
-#
 ##dirs = ["hires/jet", "hires/nojet", "medres/jet", "medres/nojet"]
 dirs = ["ultrares/jet", "ultrares/nojet", "highres/jet", "highres/nojet"]
+#dirs = ["ultrares/testjet", "ultrares/testnojet", "highres/jet", "highres/nojet"]
 labels = ["$32K^3$ jet", "no jet", "$16K^3$ jet", "no jet"]
 ltypes = ["solid", "dashed", "solid", "dashed"]
 lweights = [4, 4, 2, 2]
-
-#dirs = ["medres/jet", "medres/nojet", "medres/big_jet", "medres/small_jet"]
-#labels = ["$8K^3$ jet", "no jet", "2xjet", "1/30xjet"]
-#ltypes = ["solid", "dashed", "solid", "dashed"]
-#lweights = [4, 4, 2, 2]
 
 for dir, label, ltype, lw in zip(dirs,labels,ltypes,lweights): 
 	first_time = True
@@ -87,6 +90,8 @@ for dir, label, ltype, lw in zip(dirs,labels,ltypes,lweights):
 		lt_mask = lt[lt>lt_min]
 		lm_mask = lm[lt>lt_min]
 		p = numpy.polyfit( lt_mask[lt_mask<lt_kink], lm_mask[lt_mask<lt_kink], 1)
+		print p[deg]
+		sys.exit()
 		k = numpy.polyfit( lt[lt>=lt_kink], lm[lt>=lt_kink], 1)
 		pl.loglog( tarray, mtot, linewidth=lw,label="{0} $\\alpha_1={1:2.2f}$ $\\alpha_2={2:2.2f}$".format(label, p[0], k[0]),ls=ltype)
 		ltk =  numpy.arange(lt_kink, 6.2, 0.1 )
