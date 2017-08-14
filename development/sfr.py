@@ -11,9 +11,9 @@ import math
 from matplotlib import rcParams
 
 # Setup plot tick marks to match the other run of __ plots.
-pl.rc("text", usetex=True)
-pl.rc('font', family='serif')
-rcParams.update({'figure.autolayout': True})
+#pl.rc("text", usetex=True)
+#pl.rc('font', family='serif')
+#rcParams.update({'figure.autolayout': True})
 rcParams['axes.linewidth']    = 2
 rcParams['lines.linewidth']   = 2
 rcParams['xtick.major.width'] = 3    # major tick width in points
@@ -35,11 +35,11 @@ parser.add_argument('--kink', action='store_true')
 args = parser.parse_args()
 
 ##dirs = ["hires/jet", "hires/nojet", "medres/jet", "medres/nojet"]
-dirs = ["ultrares/jet", "ultrares/nojet", "highres/jet", "highres/nojet"]
+dirs = ["ultrares/jet", "ultrares/nojet", "highres/jet", "highres/nojet", "highres/jet_v0_1"]
 #dirs = ["ultrares/testjet", "ultrares/testnojet", "highres/jet", "highres/nojet"]
-labels = ["$32K^3$ jet", "no jet", "$16K^3$ jet", "no jet"]
-ltypes = ["solid", "dashed", "solid", "dashed"]
-lweights = [4, 4, 2, 2]
+labels = ["$32K^3$ 0.3 jet", "no jet", "$16K^3$ jet", "no jet", "$16K^3$ 0.1 jet"]
+ltypes = ["solid", "dashed", "solid", "dashed", "solid"]
+lweights = [4, 4, 2, 2, 2]
 
 for dir, label, ltype, lw in zip(dirs,labels,ltypes,lweights): 
 	first_time = True
