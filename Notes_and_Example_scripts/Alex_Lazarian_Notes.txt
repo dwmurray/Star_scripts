@@ -1,0 +1,10 @@
+Makes the statment that the eddy's align to the magnetic field as you go to smaller scales. Referenced Goldreich Sidrah 1995 paper and said they missed one ting.
+Look up: Velocity Channel Gradients.
+Can we use density gradients? NOt good for tracing mag fields. at least not at high machs. Intensity gradients much more sensitive to shocks.
+What about self gravity regions? VCGs are mostly perp to B field, as you get closer to star.
+Super Alfvenic turbulence can be traced with synchrotron radiation.
+
+Theturbulent velocity will scale differently if its parallel vs perp to mag field. || = l^2/3, perp = l^1/3.
+
+
+What is a transluscent cloud?

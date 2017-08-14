@@ -83,7 +83,7 @@ subroutine update_protostar( deltaM, deltaT, M, R, n, md, protostar_state, &
   double precision, parameter      :: f_rad = 0.33 ! used to update to shell deuterium burning.
   double precision                 :: Beta_m_r, dlogBetadlogM, Beta_core_m_r, dlogBeta_core_dlogM
   double precision                 :: L_int, L_ion, L_D, deltaR
-  double precision                 :: T_core
+  double precision                 :: T_core, n_old
   !ZAMS checks
   double precision                 :: L_ZAMS, R_ZAMS, beta_ZAMS1!beta_ZAMS1 to avoid namespace confusion with parameter beta_ZAMS
 
@@ -115,11 +115,13 @@ subroutine update_protostar( deltaM, deltaT, M, R, n, md, protostar_state, &
 !  write(*,102) 'M/Msun', M/M_sun, 'R/Rsun', R/R_sun
 !     write(*,101) 'T_fix', T_core/1.5D6
   if ( protostar_state .EQ. 1) then !No burning State.
+!     write(*,*) n
      if (T_core .GE. 1.5D6) then
         write(*,*) 'core burn'
         write(*,102) 'M/Msun', M/M_sun, 'R/Rsun', R/R_sun
         protostar_state = 2 ! update to core burning at fixed T_core
         !Offner et al. 2009 below B14
+        n_old = n
         n = 1.5
         !Init deuterium mass to burn.
         !Offner et al. 2009 B3
@@ -129,6 +131,11 @@ subroutine update_protostar( deltaM, deltaT, M, R, n, md, protostar_state, &
   end if
   
   if (protostar_state .EQ. 2) then ! Core burning at fixed T_core
+!     write(*,*) 'old n index', n_old
+!     if (T_core .LT. 1.5D6) then
+!        protostar_state = 1
+!        n = (n_old - 1.5) / 2. + 1.5
+!     end if
 !     write(*,103) 'L_int', L_int, 'L_ion', L_ion, 'L_D', L_D
 !     write(*,101) 'T_fix', T_core/1.5D6
      call update_md(deltaM, deltaT, L_D, md) !returns an updated md

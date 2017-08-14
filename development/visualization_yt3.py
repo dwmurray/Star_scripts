@@ -7,6 +7,46 @@ import yt
 import matplotlib.colorbar as cb
 import glob
 import sys
+import matplotlib.pyplot as plt
+from matplotlib import rcParams
+
+
+def Setup_plot_window():
+	global Init_matplotParams
+	if Init_matplotParams == False:
+		#plt.rc("text", usetex=True)
+		#plt.rc('font', family='serif')
+		#rcParams.update({'figure.autolayout': True})
+		rcParams['axes.linewidth']    = 2
+		rcParams['lines.linewidth']   = 2
+		rcParams['xtick.major.width'] = 3    # major tick width in points
+		rcParams['xtick.major.size']  = 14    # major tick width in points
+		rcParams['xtick.minor.size']  = 8    # major tick width in points
+		rcParams['xtick.minor.width'] = 2    # major tick width in points
+		#rcParams['ytick.major.width'] = 3    # major tick width in points
+		#rcParams['ytick.minor.width'] = 2    # major tick width in points
+		#rcParams['ytick.major.size']  = 14    # major tick width in points
+		#rcParams['ytick.minor.size']  = 8    # major tick width in points
+		rcParams['xtick.labelsize']   = 25
+		rcParams['ytick.labelsize']   = 25
+		#xtick.minor.width    : 0.5    # minor tick width in points
+		Init_matplotParams = True
+
+#	plt.clf()
+	#plt.legend(loc=3, fontsize=21, frameon=False, ncol=2)
+	#plt.title('{0} framestep {1:04d}'.format(vel_Plot_label, framestep))
+	#plt.title('Particle {0} {1:3d} kyr after formation'.format(particle_name, int(partAge)))
+#	plt.xticks(fontsize=24)
+#	plt.yticks(fontsize=24)
+#	plt.minorticks_on()
+#	plt.tick_params('both',length=8, width=1, which='minor')
+#	plt.tick_params('both',length=10, width=1.5, which='major')
+#	plt.gcf().subplots_adjust(bottom=0.15)
+#	plt.tight_layout()
+
+
+
+
 
 def particle_ID_locations(sinkfile, current_item) :
 	try : 
@@ -94,7 +134,7 @@ def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
 	p = yt.OffAxisSlicePlot(pf, Axis_to_plot, plot_field, center=part_center, width=(zoom_width, "pc"))
 	p.set_cmap(field="density", cmap='bds_highcontrast')#yt2 default cmap
 	p.set_zlim("density", 1e-23,1e-14)
-	p.set_font({'size':25})
+
 
 #	if( args.magnetic) :
 		#p.annotate_magnetic_field()
@@ -112,6 +152,8 @@ def OffAxisSlice(pf, ParticleID, part_center, zoom_width=2.0) :
 		p.annotate_cquiver('cutting_plane_velocity_x', 'cutting_plane_velocity_y', 20)# yt3
 #		p.annotate_contour("density")
 	#fileout="{0}_{1:05d}_{2}_ID{3}pc_{4}.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format)
+	#ax.yaxis.label.set_size(40)
+	p.set_font({'size':30})
 	fileout="{0}_ID{4}_{2}_{3}pc_{6}_{7}_{1:05d}.{5}".format(plot_out_prefix, i, plot_field, zoom_width, ParticleID, out_format, 'L', snap)
 	print fileout
         p.save(name=fileout)
@@ -198,6 +240,9 @@ withPDF = args.pdf
 prefix = 'output'
 plot_out_prefix = 'movieframe'
 
+global Init_matplotParams
+Init_matplotParams = False
+
 if (args.offslice):
 	snap = 'offslice'
 elif(args.slice):
@@ -210,6 +255,7 @@ if (withPDF):
 else:
 	out_format = 'png'
 
+Setup_plot_window()
 for i in range(args.start,args.end,args.step) :
 	if not glob.glob("{0}_{1:05d}".format(prefix, i)):
 		continue

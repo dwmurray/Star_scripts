@@ -32,7 +32,7 @@ protostar_parameters.o: protostar_parameters.f90
 
 
 clean:
-	-rm *.o *.mod xprotostar Beta_interpolation_file.txt
+	-rm *.o *.mod xprotostar
 #
 #machine_epsilon: test_machine_epsilon.o machine_epsilon.o constants.o
 #	${F90} -o xtest_machine_epsilon test_machine_epsilon.o machine_epsilon.o constants.o
