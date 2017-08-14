@@ -1,0 +1,23 @@
+#!/bin/bash
+#$ -V
+#$ -cwd
+#$ -N YTSERIAL 
+#$ -j y 
+#$ -o ytserial.o$JOB_ID
+#$ -pe 1way 12
+#$ -q serial
+#$ -l h_rt=10:00:00
+#$ -M chang65@uwm.edu
+#$ -m be
+#$ -A TG-AST130004
+source $WORK/yt-x86_64/bin/activate
+module swap intel gcc
+python scripts/sfr.py
+#python scripts/tracking_hi_density.py 112 127
+#python scripts/tracking_multi_density.py 112 127
+#python scripts/tracking_star.py starIndices.txt 120 133
+#python scripts/geometry_analysis.py
+#python scripts/tracking_analysis.py 127 134 144 &
+#python scripts/tracking_analysis.py 135 137 144 &
+#python scripts/tracking_analysis.py 138 139 144 &
+#wait

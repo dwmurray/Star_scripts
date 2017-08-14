@@ -1,0 +1,24 @@
+#!/bin/bash
+#SBATCH -J Scripts     # job Name
+#SBATCH -o Serial.o%j       # output and error file name (%j expands to jobID)
+#SBATCH -e Serial.e%j       # output and error file name (%j expands to jobID)
+#SBATCH -n 4             # total number of mpi tasks requested
+#SBATCH -p serial # queue (partition) name -- normal, development, etc.
+#SBATCH -t 02:00:00        # run time (hh:mm:ss) - 1.5 hours
+#SBATCH --mail-user=chang65@uwm.edu
+#SBATCH --mail-type=begin  # email me when the job starts
+#SBATCH --mail-type=end    # email me when the job finishes
+#SBATCH -A TG-AST130004
+
+#export LD_LIBRARY_PATH=$HOME/local/lib:$LD_LIBRARY_PATH
+source $HOME/yt-x86_64/bin/activate
+module unload intel
+module load gcc
+cd $SLURM_SUBMIT_DIR
+
+python scripts/visualization.py 0 35 &
+python scripts/visualization.py 35 70 &
+python scripts/visualization.py 70 93 &
+python scripts/visualization.py 93 139 --particle &
+
+wait

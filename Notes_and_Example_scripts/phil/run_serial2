@@ -1,0 +1,20 @@
+#!/bin/bash
+#$ -V
+#$ -cwd
+#$ -N YTSERIAL 
+#$ -j y 
+#$ -o ytserial.o$JOB_ID
+#$ -pe 4way 12
+#$ -q normal
+#$ -l h_rt=03:00:00
+#$ -M chang65@uwm.edu
+#$ -m be
+#$ -A TG-AST130004
+source $WORK/yt-x86_64/bin/activate
+module swap intel gcc
+#python scripts/rad_analysis.py
+python scripts/tracking_analysis.py 131 134 144 &
+python scripts/tracking_analysis.py 140 141 144 &
+python scripts/tracking_analysis.py 142 143 144 &
+python scripts/tracking_analysis.py 144 144 144 &
+wait
