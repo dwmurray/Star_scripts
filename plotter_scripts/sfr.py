@@ -32,6 +32,7 @@ parser.add_argument('start', metavar='N1', type=int)
 parser.add_argument('end', metavar='N2', type=int)
 parser.add_argument('step', metavar='N3', type=int)
 parser.add_argument('--kink', action='store_true')
+parser.add_argument('--check', action='store_true')
 args = parser.parse_args()
 
 ##dirs = ["hires/jet", "hires/nojet", "medres/jet", "medres/nojet"]
@@ -40,6 +41,12 @@ dirs = ["ultrares/jet", "ultrares/nojet", "highres/jet", "highres/nojet", "highr
 labels = ["$32K^3$ 0.3 jet", "no jet", "$16K^3$ jet", "no jet", "$16K^3$ 0.1 jet"]
 ltypes = ["solid", "dashed", "solid", "dashed", "solid"]
 lweights = [4, 4, 2, 2, 2]
+
+if args.check:
+	dirs = ["highres/jet", "highres/nojet", "highres/jet_v0_1", "highres/jet_v0_5"]
+	labels = ["$16K^3$ 0.3 jet (standard)", "no jet", "0.1 jet", "0.5 jet"]
+	ltypes = ["solid", "dashed", "solid", "solid"]
+	lweights = [2, 2, 2, 2]
 
 for dir, label, ltype, lw in zip(dirs,labels,ltypes,lweights): 
 	first_time = True
@@ -116,5 +123,5 @@ pl.legend(loc="best",fontsize=15)
 pl.xticks(fontsize=17)
 pl.yticks(fontsize=17)
 
-#pl.savefig("/home/m/murray/dwmurray/scratch/ramses-jet/phil_sfr.pdf")
-pl.savefig("sfr.pdf")
+pl.savefig("/home/m/murray/dwmurray/scratch/ramses-jet/check_sfr.pdf")
+#pl.savefig("sfr.pdf")
